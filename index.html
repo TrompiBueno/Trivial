@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Trivial Épico</title>
+<style>
+body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#ffecd2,#fcb69f); text-align:center; margin:0; padding:20px; }
+h1 { font-size:2.5em; margin-bottom:10px; color:#333; }
+#setup,#game { margin-top:20px; }
+.hidden { display:none; }
+input,button { padding:10px 15px; border-radius:5px; border:none; margin:5px; font-size:1em; }
+button { background:#ff6f61; color:white; cursor:pointer; transition:background 0.3s; }
+button:hover { background:#e85a4f; }
+#scoreboard { display:flex; flex-wrap:wrap; justify-content:center; margin:20px auto; gap:15px; }
+.team { background:white; border-radius:10px; padding:15px; min-width:140px; box-shadow:0 3px 6px rgba(0,0,0,0.2); }
+.team h3 { margin:0; font-size:1.2em; color:#444; }
+.team p { font-weight:bold; font-size:1.1em; margin:5px 0 0; }
+#turn { font-size:1.3em; margin:15px; }
+#diceResult { font-size:1.5em; margin:15px; font-weight:bold; color:#333; }
+.question { font-size:1.2em; margin:15px; }
+.answers button { display:block; margin:8px auto; width:280px; }
+#messageBox { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border-radius:15px; padding:25px; box-shadow:0 5px 15px rgba(0,0,0,0.3); font-size:1.3em; display:none; z-index:1000; text-align:center; }
+#messageBox.correct { border:3px solid #4caf50; color:#2e7d32; }
+#messageBox.incorrect { border:3px solid #f44336; color:#b71c1c; }
+#messageBox button { background:#555; margin-top:15px; padding:10px 15px; border-radius:5px; border:none; color:white; cursor:pointer; }
+#winnerBox { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:gold; padding:30px; border-radius:20px; font-size:2em; font-weight:bold; display:none; }
+#teacherToggle { position:fixed; bottom:10px; right:10px; width:40px; height:40px; border-radius:50%; background:#ff6f61; color:white; border:none; cursor:pointer; font-size:1.2em; }
+#teacherPanel { position:fixed; bottom:60px; right:10px; background:rgba(255,255,255,0.95); border-radius:10px; padding:10px; box-shadow:0 2px 6px rgba(0,0,0,0.3); max-width:220px; display:none; }
+#teacherPanel h4 { margin:0 0 5px 0; }
+#teacherPanel button { margin:2px 0; width:auto; padding:5px; border-radius:5px; border:none; background:#ff6f61; color:white; cursor:pointer; }
+.correct-answer { background:#4caf50 !important; color:white !important; }
+</style>
+</head>
+<body>
+<h1>🎲 Trivial de Física y Química 🎲</h1>
+
+<div id="setup">
+  <p>Número de equipos (2-6):</p>
+  <input type="number" id="numTeams" min="2" max="6" value="2"><br>
+  <div id="teamNames"></div>
+  <button onclick="prepareTeams()">Actualizar</button>
+</div>
+
+<div id="game" class="hidden">
+  <div id="scoreboard"></div>
+  <p id="turn"></p>
+  <button onclick="rollDice()">🎲 Tirar dado</button>
+  <p id="diceResult"></p>
+  <div id="questionBox" class="hidden">
+    <p class="question" id="questionText"></p>
+    <div class="answers" id="answers"></div>
+  </div>
+</div>
+
+<div id="messageBox"><p id="messageText"></p><button onclick="closeMessage()">Aceptar</button></div>
+<div id="winnerBox"></div>
+
+<button id="teacherToggle" onclick="toggleTeacherPanel()">⌨</button>
+<div id="teacherPanel">
+  <h4>Panel Profesor</h4>
+  <div id="panelTeams"></div>
+  <button onclick="closeTeacherPanel()">Cerrar</button>
+</div>
+
+<script>
+// BANCO DE PREGUNTAS
+const easyQuestions=[
+{q:"¿Qué estudia la Física?",answers:["La constitución interna de la materia","Los planetas","Los cambios sin alterar la naturaleza interna","La escritura"],correct:2},
+{q:"¿Qué estudia la Química?",answers:["El movimiento rectilíneo","Las matemáticas","Los cambios de posición","Los cambios que afectan la naturaleza interna"],correct:3},
+{q:"La evaporación del agua es un cambio...",answers:["Nuclear","Electromagnético","Físico","Químico"],correct:2},
+{q:"La oxidación del hierro es un cambio...",answers:["Químico","Mecánico","Magnético","Físico"],correct:0},
+{q:"Lanzar una pelota es un cambio...",answers:["Eléctrico","Químico","Físico","Nuclear"],correct:2},
+{q:"La fermentación del mosto en vino es un cambio...",answers:["Magnético","Físico","Químico","Solar"],correct:2},
+{q:"Primer paso del método científico",answers:["Hipótesis","Observación","Conclusión","Experimentación"],correct:1},
+{q:"Segundo paso del método científico",answers:["Conclusión","Comunicar resultados","Formulación de hipótesis","Observación"],correct:2},
+{q:"Tercer paso del método científico",answers:["Hipótesis","Experimentación","Observación","Ley científica"],correct:1},
+{q:"Último paso del método científico",answers:["Conclusión","Ley científica","Comunicación de resultados","Experimentación"],correct:2},
+{q:"¿Qué representa el eje X en una gráfica?",answers:["Constante","Variable dependiente","Variable independiente","Tiempo en segundos"],correct:2},
+{q:"¿Qué representa el eje Y en una gráfica?",answers:["Temperatura","Variable dependiente","Variable independiente","Constante"],correct:1},
+{q:"Si al aumentar X también aumenta Y, es relación...",answers:["Constante","Directa","Inversa","Cuadrática"],correct:1},
+{q:"Si al aumentar X disminuye Y, es relación...",answers:["Aleatoria","Inversa","Directa","Constante"],correct:1},
+{q:"La Ley de Boyle relaciona...",answers:["Fuerza y distancia","Masa y energía","Presión y volumen","Tiempo y velocidad"],correct:2},
+{q:"Fórmula de la Ley de Boyle",answers:["F=m·a","V=d/t","E=m·c²","V·P=k"],correct:3},
+{q:"La fuerza se mide en...",answers:["Joule","Watt","Pascal","Newton"],correct:3},
+{q:"La energía se mide en...",answers:["Kelvin","Joule","Pascal","Newton"],correct:1},
+{q:"La presión se mide en...",answers:["Newton","Pascal","Watt","Metro"],correct:1},
+{q:"La potencia se mide en...",answers:["Kelvin","Joule","Newton","Watt"],correct:3},
+{q:"Unidad de longitud en el SI",answers:["Segundo","Litro","Metro","Mol"],correct:2},
+{q:"Unidad de masa en el SI",answers:["Amperio","Kilogramo","Segundo","Newton"],correct:1},
+{q:"Unidad de tiempo en el SI",answers:["Metro","Segundo","Hora","Año"],correct:1},
+{q:"Unidad de temperatura en el SI",answers:["Celsius","Fahrenheit","Kelvin","Newton"],correct:2},
+{q:"Unidad de cantidad de sustancia",answers:["Gramo","Mol","Litro","Candela"],correct:1},
+{q:"Unidad de intensidad de corriente eléctrica",answers:["Amperio","Voltio","Watt","Coulomb"],correct:0},
+{q:"Unidad de intensidad luminosa",answers:["Candela","Newton","Mol","Kelvin"],correct:0},
+{q:"La fórmula del peso es...",answers:["P=m·g","P=E/t","P=F·d","P=V·I"],correct:0},
+{q:"¿Quién formuló la Ley de la Gravitación Universal?",answers:["Newton","Einstein","Boyle","Aristóteles"],correct:0},
+{q:"En la ley de gravitación, 'm1' significa...",answers:["Gravedad","Constante universal","Distancia","Masa 1"],correct:3},
+{q:"En la ley de gravitación, 'd' significa...",answers:["Densidad","Diámetro","Distancia","Dureza"],correct:2},
+{q:"El símbolo G en la gravitación universal significa...",answers:["Constante de gravitación universal","Gravedad de la Tierra","Gas","Grados Kelvin"],correct:0},
+{q:"La fórmula de la fuerza de gravedad es...",answers:["F=m·a","F=G·(m1·m2)/d²","E=m·c²","P=F/A"],correct:1},
+{q:"La densidad se calcula como...",answers:["ρ=V/m","ρ=P·t","ρ=m/V","ρ=F·d"],correct:2},
+{q:"La velocidad media se calcula como...",answers:["v=P·V","v=E/m","v=d/t","v=F/m"],correct:2},
+{q:"La aceleración se mide en...",answers:["m/s²","Newton","Joule","m/s"],correct:0},
+{q:"La energía cinética se calcula con...",answers:["Ec=m·g·h","Ec=1/2·m·v²","Ec=F·d","Ec=V·I"],correct:1},
+{q:"La energía potencial gravitatoria se calcula con...",answers:["Ep=1/2·m·v²","Ep=P·t","Ep=m·g·h","Ep=F·d"],correct:2},
+{q:"El trabajo mecánico se calcula con...",answers:["W=P·t","W=m·a","W=F·d","W=m·g"],correct:2},
+{q:"La magnitud vectorial tiene...",answers:["Solo valor","Valor y dirección","Solo unidad","Ninguna"],correct:1},
+{q:"La magnitud escalar tiene...",answers:["Valor y dirección","Solo valor numérico","Módulo y ángulo","Se mide en Newton"],correct:1},
+{q:"Un ejemplo de energía química es...",answers:["Eléctrica","Luz solar","Eólica","Combustión"],correct:3},
+{q:"Un ejemplo de energía térmica es...",answers:["Movimiento","Calor","Electricidad","Reacción nuclear"],correct:1},
+{q:"Un ejemplo de energía eólica es...",answers:["Sol","Viento","Agua","Reacción química"],correct:1},
+{q:"Un ejemplo de energía nuclear es...",answers:["Fisión","Combustión","Eólica","Solar"],correct:0},
+{q:"El símbolo de amperio es...",answers:["V","W","A","Ω"],correct:2},
+{q:"El símbolo de Kelvin es...",answers:["C","L","T","K"],correct:3},
+{q:"El símbolo del mol es...",answers:["mol","M","ml","mo"],correct:0},
+{q:"El símbolo del metro es...",answers:["kg","s","m","N"],correct:2}
+
+];
+const normalQuestions=[
+{q:"¿Qué variable se manipula en un experimento?",answers:["Dependiente","Constante","Independiente","Aleatoria"],correct:2},
+{q:"¿Qué variable se mide en un experimento?",answers:["Dependiente","Independiente","Constante","Neutra"],correct:0},
+{q:"Si cultivo 10 plantas al sol y 10 en la sombra, ¿qué es la luz del sol?",answers:["Variable independiente","Variable dependiente","Constante","Hipótesis"],correct:0},
+{q:"Si cultivo 10 plantas al sol y 10 en la sombra, ¿qué es la longitud de la planta?",answers:["Variable independiente","Hipótesis","Constante","Variable dependiente"],correct:3},
+{q:"En un experimento, la cantidad de agua que reciben las plantas es...",answers:["Constante","Variable independiente","Variable dependiente","Error"],correct:0},
+{q:"Si una gráfica muestra Y creciendo linealmente con X, es...",answers:["Proporcionalidad directa","Relación inversa","Constante","Parábola"],correct:0},
+{q:"La fórmula F=m·g calcula...",answers:["Trabajo","Energía","Peso","Velocidad"],correct:2},
+{q:"Un objeto de 5 kg en la Tierra (g=10) pesa...",answers:["500 N","10 N","5 N","50 N"],correct:3},
+{q:"Si F=10 N y d=5 m, el trabajo es...",answers:["50 J","15 J","2 J","5 J"],correct:0},
+{q:"Si m=2 kg, v=3 m/s, la energía cinética es...",answers:["3 J","12 J","6 J","9 J"],correct:3},
+{q:"Si m=4 kg, g=10, h=2 m, la energía potencial es...",answers:["80 J","40 J","60 J","20 J"],correct:2},
+{q:"Si V=10 L y P=2 atm, según Boyle, el producto es...",answers:["5","10","20","25"],correct:2},
+{q:"La fórmula P=F/A significa...",answers:["Potencia","Peso","Presión","Densidad"],correct:2},
+{q:"Un objeto con masa 1 kg y aceleración 2 m/s² sufre una fuerza de...",answers:["2 N","3 N","0.5 N","1 N"],correct:0},
+{q:"Un cuerpo con velocidad constante tiene aceleración...",answers:["Cero","Negativa","Máxima","Variable"],correct:0},
+{q:"La unidad de energía potencial es...",answers:["Newton","Pascal","Joule","Watt"],correct:2},
+{q:"La unidad de trabajo es...",answers:["Watt","Newton","Joule","Candela"],correct:2},
+{q:"La unidad de presión es...",answers:["Watt","Newton","Mol","Pascal"],correct:3},
+{q:"La unidad de potencia es...",answers:["Watt","Pascal","Joule","Newton"],correct:0},
+{q:"La ley de la gravedad establece atracción entre...",answers:["Dos masas","Un objeto y el aire","Electrones","Un planeta y el sol"],correct:0},
+{q:"En la ley de gravitación, si la distancia aumenta, la fuerza...",answers:["Aumenta","Se mantiene igual","Disminuye","Se vuelve cero"],correct:2},
+{q:"Si un objeto tiene ρ=1000 kg/m³, es...",answers:["Aire","Agua","Hierro","Plomo"],correct:1},
+{q:"Si la densidad de un objeto es menor que la del agua, este...",answers:["Se oxida","Flota","Se hunde","Se evapora"],correct:1},
+{q:"La notación científica para 0,00032 es...",answers:["32·10⁻²","0,32·10⁻³","3,2·10⁻⁴","3,2·10²"],correct:2},
+{q:"La notación científica de 2500000 es...",answers:["2,5·10⁶","2,5·10⁵","0,25·10⁶","25·10⁶"],correct:1},
+{q:"La notación científica de 0,00000056 es...",answers:["5,6·10⁻⁶","5,6·10⁻⁷","0,56·10⁻⁶","56·10⁻⁸"],correct:1},
+{q:"El símbolo 'Δ' en fórmulas significa...",answers:["Cambio","Velocidad","Tiempo","Masa"],correct:0},
+{q:"Un experimento bien diseñado debe...",answers:["No repetir","Mantener constantes las variables ajenas","Evitar mediciones","Cambiar todo al azar"],correct:1},
+{q:"La energía mecánica total es...",answers:["F·d","Ep+Ec","Ep-Ec","m·a"],correct:1},
+{q:"El trabajo es positivo cuando...",answers:["No hay movimiento","La fuerza y el desplazamiento tienen la misma dirección","La fuerza es perpendicular al movimiento","El objeto está en reposo"],correct:1},
+{q:"El trabajo es negativo cuando...",answers:["La fuerza se opone al movimiento","No hay movimiento","No existe desplazamiento","La fuerza es cero"],correct:0},
+{q:"La fórmula de potencia es...",answers:["P=W/t","P=F·d","P=m·g·h","P=V·I"],correct:0},
+{q:"El símbolo de la densidad es...",answers:["Δ","Ω","ρ","λ"],correct:2},
+{q:"Una hipótesis se convierte en ley científica cuando...",answers:["Es observada una sola vez","No se comunica","Se comprueba repetidamente","Es rechazada"],correct:2}
+
+];
+const hardQuestions=[
+{q:"Si una planta al sol crece 15 cm y otra a la sombra 5 cm, ¿qué variable es la diferencia de altura?",answers:["Constante","Error","Dependiente","Independiente"],correct:2},
+{q:"Si duplicamos la distancia entre dos masas, la fuerza de atracción gravitatoria...",answers:["Se mantiene","Se reduce a la mitad","Se duplica","Se reduce a la cuarta parte"],correct:3},
+{q:"Un gas ocupa 4 L a 2 atm. Según Boyle, si aumenta la presión a 4 atm, el volumen será...",answers:["4 L","1 L","2 L","8 L"],correct:2},
+{q:"Un coche de 1000 kg a 20 m/s tiene energía cinética de...",answers:["10000 J","400000 J","200000 J","20000 J"],correct:2},
+{q:"Una caja de 50 kg a 2 m de altura tiene energía potencial de...",answers:["50 J","200 J","500 J","1000 J"],correct:3},
+{q:"Si aplico 20 N y el objeto no se mueve, el trabajo es...",answers:["No se puede calcular","0","20 J","Cero"],correct:3},
+{q:"Una fuerza de 10 N desplaza un objeto 3 m en contra de la dirección del movimiento. El trabajo es...",answers:["30 J","10 J","0","-30 J"],correct:3},
+{q:"Un objeto recorre 100 m en 20 s. Su velocidad media es...",answers:["5 m/s","10 m/s","2 m/s","4 m/s"],correct:0},
+{q:"Un coche pasa de 0 a 20 m/s en 10 s. Su aceleración es...",answers:["5 m/s²","2 m/s²","1 m/s²","10 m/s²"],correct:1},
+{q:"Si un bloque pesa 200 N y el área de apoyo es 0,5 m², la presión ejercida es...",answers:["200 Pa","100 Pa","600 Pa","400 Pa"],correct:3}
+
+];
+
+const effects=[
+  {text:"Fácil (1 punto)",points:1,pool:easyQuestions},
+  {text:"Normal (2 puntos)",points:2,pool:normalQuestions},
+  {text:"Difícil (3 puntos)",points:3,pool:hardQuestions},
+  {text:"Robo (2 puntos)",points:2,pool:normalQuestions,mode:"steal"},
+  {text:"Doble o nada (4 puntos si aciertas, -2 si fallas)",points:4,pool:hardQuestions,mode:"double"}
+];
+
+let teams=[],currentTeam=0,currentEffect=null,WIN_POINTS=40;
+
+function prepareTeams(){
+  const num=parseInt(document.getElementById("numTeams").value);
+  if(num<2||num>6){ showMessage("Elige entre 2 y 6 equipos.","incorrect"); return; }
+  const nameDiv=document.getElementById("teamNames");
+  nameDiv.innerHTML='';
+  for(let i=0;i<num;i++){
+    nameDiv.innerHTML+=`<input type='text' id='teamName${i}' placeholder='Nombre equipo ${i+1}'><br>`;
+  }
+  nameDiv.innerHTML+=`<button onclick='startGame(${num})'>Empezar Juego</button>`;
+}
+
+function startGame(num){
+  teams=[];
+  for(let i=0;i<num;i++){
+    const name=document.getElementById("teamName"+i).value || `Equipo ${i+1}`;
+    teams.push({name:name, score:0});
+  }
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  updateScoreboard(); updateTurn();
+  updateTeacherPanel();
+}
+
+function updateScoreboard(){
+  const board=document.getElementById("scoreboard"); board.innerHTML='';
+  teams.forEach((t,i)=>{
+    const div=document.createElement("div");
+    div.className="team";
+    div.innerHTML=`<h3>${t.name}</h3><p>${t.score} pts</p>`;
+    if(i===currentTeam) div.style.border="3px solid #ff6f61";
+    board.appendChild(div);
+  });
+}
+
+function updateTurn(){
+  document.getElementById("turn").textContent=`Turno de ${teams[currentTeam].name}`;
+  document.getElementById("diceResult").textContent='';
+  document.getElementById("questionBox").classList.add("hidden");
+}
+
+function rollDice(){
+  const roll=Math.floor(Math.random()*effects.length);
+  currentEffect=effects[roll];
+  document.getElementById("diceResult").textContent=currentEffect.text;
+  askQuestion();
+}
+
+function askQuestion(){
+  const q=currentEffect.pool[Math.floor(Math.random()*currentEffect.pool.length)];
+  document.getElementById("questionBox").classList.remove("hidden");
+  document.getElementById("questionText").textContent=q.q;
+  const ansDiv=document.getElementById("answers"); 
+  ansDiv.innerHTML='';
+  q.answers.forEach((ans,i)=>{
+    const btn=document.createElement("button"); 
+    btn.textContent=ans;
+    btn.onclick=()=>checkAnswer(i,q.correct,ansDiv);
+    ansDiv.appendChild(btn);
+  });
+}
+
+function checkAnswer(choice,correct,ansDiv){
+  const team=teams[currentTeam];
+  if(choice===correct){
+    if(currentEffect.mode==='steal'){
+      const victimNames = teams.filter(t=>t!==team).map(t=>t.name).join(', ');
+      let victimName = prompt(`¡Correcto! A quién quieres robar (${victimNames})?`);
+      let victim = teams.find(t=>t.name.toLowerCase()===victimName?.toLowerCase());
+      if(victim){
+        team.score += currentEffect.points;
+        victim.score -= currentEffect.points;
+        showMessage(`¡Robaste ${currentEffect.points} puntos a ${victim.name}! 🎉`,'correct');
+      } else {
+        team.score += currentEffect.points;
+        showMessage(`¡Correcto! Ganaste ${currentEffect.points} puntos, pero nadie fue robado 😎`,'correct');
+      }
+    } else if(currentEffect.mode==='double'){
+      team.score += currentEffect.points;
+      showMessage(`¡Acertaste Doble o Nada! +${currentEffect.points} puntos 🔥`,'correct');
+    } else {
+      team.score += currentEffect.points;
+      showMessage(`¡Correcto! +${currentEffect.points} puntos 🎉`,'correct');
+    }
+    nextTurn();
+  } else {
+    // Mostrar correcta en verde
+    const buttons = ansDiv.querySelectorAll("button");
+    buttons[correct].classList.add("correct-answer");
+    if(currentEffect.mode==='double'){ team.score -= 2; }
+    showMessage(`Fallaste 😢 La correcta es "${buttons[correct].textContent}"`,'incorrect');
+    // Esperar 2 segundos antes de pasar
+    setTimeout(()=>{ nextTurn(); closeMessage(); },2000);
+  }
+}
+
+function nextTurn(){
+  if(teams[currentTeam].score>=WIN_POINTS){ showWinner(teams[currentTeam].name); return; }
+  currentTeam=(currentTeam+1)%teams.length;
+  updateScoreboard(); updateTurn(); updateTeacherPanel();
+}
+
+function showMessage(msg,type){
+  const box=document.getElementById("messageBox");
+  const txt=document.getElementById("messageText");
+  txt.textContent=msg;
+  box.className='';
+  box.classList.add(type==='correct'?'correct':'incorrect');
+  box.style.display='block';
+}
+
+function closeMessage(){document.getElementById("messageBox").style.display='none';}
+
+function showWinner(name){
+  const winnerBox=document.getElementById("winnerBox");
+  winnerBox.textContent=`🏆 ¡${name} ha ganado la partida! 🏆`;
+  winnerBox.style.display='block';
+  document.getElementById("game").classList.add("hidden");
+}
+
+// PANEL PROFESOR
+function toggleTeacherPanel(){
+  const panel=document.getElementById("teacherPanel");
+  panel.style.display=panel.style.display==='none'?'block':'none';
+  updateTeacherPanel();
+}
+
+function closeTeacherPanel(){ document.getElementById("teacherPanel").style.display='none'; }
+
+function updateTeacherPanel(){
+  const container=document.getElementById("panelTeams");
+  container.innerHTML='';
+  teams.forEach((t,i)=>{
+    const div=document.createElement('div');
+    div.style.marginBottom='5px';
+    div.innerHTML=`<strong>${t.name}</strong> (${t.score} pts) 
+    <button onclick="teacherAdd(${i})">+1</button>
+    <button onclick="teacherSub(${i})">-1</button>`;
+    container.appendChild(div);
+  });
+}
+
+function teacherAdd(index){ teams[index].score++; updateScoreboard(); updateTeacherPanel(); }
+function teacherSub(index){ teams[index].score--; updateScoreboard(); updateTeacherPanel(); }
+</script>
+</body>
+</html>
