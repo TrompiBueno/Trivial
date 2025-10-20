@@ -1,325 +1,1509 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Trivial de Física y Química</title>
-<style>
-body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#ffecd2,#fcb69f); text-align:center; margin:0; padding:20px; }
-h1 { font-size:2.5em; margin-bottom:10px; color:#333; }
-#setup,#game { margin-top:20px; }
-.hidden { display:none; }
-input,button { padding:10px 15px; border-radius:5px; border:none; margin:5px; font-size:1em; }
-button { background:#ff6f61; color:white; cursor:pointer; transition:background 0.3s; }
-button:hover { background:#e85a4f; }
-#scoreboard { display:flex; flex-wrap:wrap; justify-content:center; margin:20px auto; gap:15px; }
-.team { background:white; border-radius:10px; padding:15px; min-width:140px; box-shadow:0 3px 6px rgba(0,0,0,0.2); }
-.team h3 { margin:0; font-size:1.2em; color:#444; }
-.team p { font-weight:bold; font-size:1.1em; margin:5px 0 0; }
-#turn { font-size:1.3em; margin:15px; }
-#diceResult { font-size:1.5em; margin:15px; font-weight:bold; color:#333; }
-.question { font-size:1.2em; margin:15px; }
-.answers button { display:block; margin:8px auto; width:280px; }
-#messageBox { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; border-radius:15px; padding:25px; box-shadow:0 5px 15px rgba(0,0,0,0.3); font-size:1.3em; display:none; z-index:1000; text-align:center; }
-#messageBox.correct { border:3px solid #4caf50; color:#2e7d32; }
-#messageBox.incorrect { border:3px solid #f44336; color:#b71c1c; }
-#messageBox button { background:#555; margin-top:15px; padding:10px 15px; border-radius:5px; border:none; color:white; cursor:pointer; }
-#winnerBox { position:fixed; top:20%; left:50%; transform:translateX(-50%); background:gold; padding:30px; border-radius:20px; font-size:2em; font-weight:bold; display:none; }
-#teacherToggle { position:fixed; bottom:10px; right:10px; width:40px; height:40px; border-radius:50%; background:#ff6f61; color:white; border:none; cursor:pointer; font-size:1.2em; }
-#teacherPanel { position:fixed; bottom:60px; right:10px; background:rgba(255,255,255,0.95); border-radius:10px; padding:10px; box-shadow:0 2px 6px rgba(0,0,0,0.3); max-width:220px; display:none; }
-#teacherPanel h4 { margin:0 0 5px 0; }
-#teacherPanel button { margin:2px 0; width:auto; padding:5px; border-radius:5px; border:none; background:#ff6f61; color:white; cursor:pointer; }
-.correct-answer { background:#4caf50 !important; color:white !important; }
-</style>
-</head>
-<body>
-<h1>🎲 Trivial de Física y Química 🎲</h1>
-
-<div id="setup">
-  <p>Número de equipos (2-6):</p>
-  <input type="number" id="numTeams" min="2" max="6" value="2"><br>
-  <div id="teamNames"></div>
-  <button onclick="prepareTeams()">Actualizar</button>
-</div>
-
-<div id="game" class="hidden">
-  <div id="scoreboard"></div>
-  <p id="turn"></p>
-  <button onclick="rollDice()">🎲 Tirar dado</button>
-  <p id="diceResult"></p>
-  <div id="questionBox" class="hidden">
-    <p class="question" id="questionText"></p>
-    <div class="answers" id="answers"></div>
-  </div>
-</div>
-
-<div id="messageBox"><p id="messageText"></p><button onclick="closeMessage()">Aceptar</button></div>
-<div id="winnerBox"></div>
-
-<button id="teacherToggle" onclick="toggleTeacherPanel()">⌨</button>
-<div id="teacherPanel">
-  <h4>Panel Profesor</h4>
-  <div id="panelTeams"></div>
-  <button onclick="closeTeacherPanel()">Cerrar</button>
-</div>
-
-<script>
-// BANCO DE PREGUNTAS
-const easyQuestions=[
-{q:"¿Qué estudia la Física?",answers:["La constitución interna de la materia","Los planetas","Los cambios sin alterar la naturaleza interna","La escritura"],correct:2},
-{q:"¿Qué estudia la Química?",answers:["El movimiento rectilíneo","Las matemáticas","Los cambios de posición","Los cambios que afectan la naturaleza interna"],correct:3},
-{q:"La evaporación del agua es un cambio...",answers:["Nuclear","Electromagnético","Físico","Químico"],correct:2},
-{q:"La oxidación del hierro es un cambio...",answers:["Químico","Mecánico","Magnético","Físico"],correct:0},
-{q:"Lanzar una pelota es un cambio...",answers:["Eléctrico","Químico","Físico","Nuclear"],correct:2},
-{q:"La fermentación del mosto en vino es un cambio...",answers:["Magnético","Físico","Químico","Solar"],correct:2},
-{q:"Primer paso del método científico",answers:["Hipótesis","Observación","Conclusión","Experimentación"],correct:1},
-{q:"Segundo paso del método científico",answers:["Conclusión","Comunicar resultados","Formulación de hipótesis","Observación"],correct:2},
-{q:"Tercer paso del método científico",answers:["Hipótesis","Experimentación","Observación","Ley científica"],correct:1},
-{q:"Último paso del método científico",answers:["Conclusión","Ley científica","Comunicación de resultados","Experimentación"],correct:2},
-{q:"¿Qué representa el eje X en una gráfica?",answers:["Constante","Variable dependiente","Variable independiente","Tiempo en segundos"],correct:2},
-{q:"¿Qué representa el eje Y en una gráfica?",answers:["Temperatura","Variable dependiente","Variable independiente","Constante"],correct:1},
-{q:"Si al aumentar X también aumenta Y, es relación...",answers:["Constante","Directa","Inversa","Cuadrática"],correct:1},
-{q:"Si al aumentar X disminuye Y, es relación...",answers:["Aleatoria","Inversa","Directa","Constante"],correct:1},
-{q:"La Ley de Boyle relaciona...",answers:["Fuerza y distancia","Masa y energía","Presión y volumen","Tiempo y velocidad"],correct:2},
-{q:"Fórmula de la Ley de Boyle",answers:["F=m·a","V=d/t","E=m·c²","V·P=k"],correct:3},
-{q:"La fuerza se mide en...",answers:["Joule","Watt","Pascal","Newton"],correct:3},
-{q:"La energía se mide en...",answers:["Kelvin","Joule","Pascal","Newton"],correct:1},
-{q:"La presión se mide en...",answers:["Newton","Pascal","Watt","Metro"],correct:1},
-{q:"La potencia se mide en...",answers:["Kelvin","Joule","Newton","Watt"],correct:3},
-{q:"Unidad de longitud en el SI",answers:["Segundo","Litro","Metro","Mol"],correct:2},
-{q:"Unidad de masa en el SI",answers:["Amperio","Kilogramo","Segundo","Newton"],correct:1},
-{q:"Unidad de tiempo en el SI",answers:["Metro","Segundo","Hora","Año"],correct:1},
-{q:"Unidad de temperatura en el SI",answers:["Celsius","Fahrenheit","Kelvin","Newton"],correct:2},
-{q:"Unidad de cantidad de sustancia",answers:["Gramo","Mol","Litro","Candela"],correct:1},
-{q:"Unidad de intensidad de corriente eléctrica",answers:["Amperio","Voltio","Watt","Coulomb"],correct:0},
-{q:"Unidad de intensidad luminosa",answers:["Candela","Newton","Mol","Kelvin"],correct:0},
-{q:"La fórmula del peso es...",answers:["P=m·g","P=E/t","P=F·d","P=V·I"],correct:0},
-{q:"¿Quién formuló la Ley de la Gravitación Universal?",answers:["Newton","Einstein","Boyle","Aristóteles"],correct:0},
-{q:"En la ley de gravitación, 'm1' significa...",answers:["Gravedad","Constante universal","Distancia","Masa 1"],correct:3},
-{q:"En la ley de gravitación, 'd' significa...",answers:["Densidad","Diámetro","Distancia","Dureza"],correct:2},
-{q:"El símbolo G en la gravitación universal significa...",answers:["Constante de gravitación universal","Gravedad de la Tierra","Gas","Grados Kelvin"],correct:0},
-{q:"La fórmula de la fuerza de gravedad es...",answers:["F=m·a","F=G·(m1·m2)/d²","E=m·c²","P=F/A"],correct:1},
-{q:"La densidad se calcula como...",answers:["ρ=V/m","ρ=P·t","ρ=m/V","ρ=F·d"],correct:2},
-{q:"La velocidad media se calcula como...",answers:["v=P·V","v=E/m","v=d/t","v=F/m"],correct:2},
-{q:"La aceleración se mide en...",answers:["m/s²","Newton","Joule","m/s"],correct:0},
-{q:"La energía cinética se calcula con...",answers:["Ec=m·g·h","Ec=1/2·m·v²","Ec=F·d","Ec=V·I"],correct:1},
-{q:"La energía potencial gravitatoria se calcula con...",answers:["Ep=1/2·m·v²","Ep=P·t","Ep=m·g·h","Ep=F·d"],correct:2},
-{q:"El trabajo mecánico se calcula con...",answers:["W=P·t","W=m·a","W=F·d","W=m·g"],correct:2},
-{q:"La magnitud vectorial tiene...",answers:["Solo valor","Valor y dirección","Solo unidad","Ninguna"],correct:1},
-{q:"La magnitud escalar tiene...",answers:["Valor y dirección","Solo valor numérico","Módulo y ángulo","Se mide en Newton"],correct:1},
-{q:"Un ejemplo de energía química es...",answers:["Eléctrica","Luz solar","Eólica","Combustión"],correct:3},
-{q:"Un ejemplo de energía térmica es...",answers:["Movimiento","Calor","Electricidad","Reacción nuclear"],correct:1},
-{q:"Un ejemplo de energía eólica es...",answers:["Sol","Viento","Agua","Reacción química"],correct:1},
-{q:"Un ejemplo de energía nuclear es...",answers:["Fisión","Combustión","Eólica","Solar"],correct:0},
-{q:"El símbolo de amperio es...",answers:["V","W","A","Ω"],correct:2},
-{q:"El símbolo de Kelvin es...",answers:["C","L","T","K"],correct:3},
-{q:"El símbolo del mol es...",answers:["mol","M","ml","mo"],correct:0},
-{q:"El símbolo del metro es...",answers:["kg","s","m","N"],correct:2}
-
-];
-const normalQuestions=[
-{q:"¿Qué variable se manipula en un experimento?",answers:["Dependiente","Constante","Independiente","Aleatoria"],correct:2},
-{q:"¿Qué variable se mide en un experimento?",answers:["Dependiente","Independiente","Constante","Neutra"],correct:0},
-{q:"Si cultivo 10 plantas al sol y 10 en la sombra, ¿qué es la luz del sol?",answers:["Variable independiente","Variable dependiente","Constante","Hipótesis"],correct:0},
-{q:"Si cultivo 10 plantas al sol y 10 en la sombra, ¿qué es la longitud de la planta?",answers:["Variable independiente","Hipótesis","Constante","Variable dependiente"],correct:3},
-{q:"En un experimento, la cantidad de agua que reciben las plantas es...",answers:["Constante","Variable independiente","Variable dependiente","Error"],correct:0},
-{q:"Si una gráfica muestra Y creciendo linealmente con X, es...",answers:["Proporcionalidad directa","Relación inversa","Constante","Parábola"],correct:0},
-{q:"La fórmula F=m·g calcula...",answers:["Trabajo","Energía","Peso","Velocidad"],correct:2},
-{q:"Un objeto de 5 kg en la Tierra (g=10) pesa...",answers:["500 N","10 N","5 N","50 N"],correct:3},
-{q:"Si F=10 N y d=5 m, el trabajo es...",answers:["50 J","15 J","2 J","5 J"],correct:0},
-{q:"Si m=2 kg, v=3 m/s, la energía cinética es...",answers:["3 J","12 J","6 J","9 J"],correct:3},
-{q:"Si m=4 kg, g=10, h=2 m, la energía potencial es...",answers:["80 J","40 J","60 J","20 J"],correct:2},
-{q:"Si V=10 L y P=2 atm, según Boyle, el producto es...",answers:["5","10","20","25"],correct:2},
-{q:"La fórmula P=F/A significa...",answers:["Potencia","Peso","Presión","Densidad"],correct:2},
-{q:"Un objeto con masa 1 kg y aceleración 2 m/s² sufre una fuerza de...",answers:["2 N","3 N","0.5 N","1 N"],correct:0},
-{q:"Un cuerpo con velocidad constante tiene aceleración...",answers:["Cero","Negativa","Máxima","Variable"],correct:0},
-{q:"La unidad de energía potencial es...",answers:["Newton","Pascal","Joule","Watt"],correct:2},
-{q:"La unidad de trabajo es...",answers:["Watt","Newton","Joule","Candela"],correct:2},
-{q:"La unidad de presión es...",answers:["Watt","Newton","Mol","Pascal"],correct:3},
-{q:"La unidad de potencia es...",answers:["Watt","Pascal","Joule","Newton"],correct:0},
-{q:"La ley de la gravedad establece atracción entre...",answers:["Dos masas","Un objeto y el aire","Electrones","Un planeta y el sol"],correct:0},
-{q:"En la ley de gravitación, si la distancia aumenta, la fuerza...",answers:["Aumenta","Se mantiene igual","Disminuye","Se vuelve cero"],correct:2},
-{q:"Si un objeto tiene ρ=1000 kg/m³, es...",answers:["Aire","Agua","Hierro","Plomo"],correct:1},
-{q:"Si la densidad de un objeto es menor que la del agua, este...",answers:["Se oxida","Flota","Se hunde","Se evapora"],correct:1},
-{q:"La notación científica para 0,00032 es...",answers:["32·10⁻²","0,32·10⁻³","3,2·10⁻⁴","3,2·10²"],correct:2},
-{q:"La notación científica de 2500000 es...",answers:["2,5·10⁶","2,5·10⁵","0,25·10⁶","25·10⁶"],correct:1},
-{q:"La notación científica de 0,00000056 es...",answers:["5,6·10⁻⁶","5,6·10⁻⁷","0,56·10⁻⁶","56·10⁻⁸"],correct:1},
-{q:"El símbolo 'Δ' en fórmulas significa...",answers:["Cambio","Velocidad","Tiempo","Masa"],correct:0},
-{q:"Un experimento bien diseñado debe...",answers:["No repetir","Mantener constantes las variables ajenas","Evitar mediciones","Cambiar todo al azar"],correct:1},
-{q:"La energía mecánica total es...",answers:["F·d","Ep+Ec","Ep-Ec","m·a"],correct:1},
-{q:"El trabajo es positivo cuando...",answers:["No hay movimiento","La fuerza y el desplazamiento tienen la misma dirección","La fuerza es perpendicular al movimiento","El objeto está en reposo"],correct:1},
-{q:"El trabajo es negativo cuando...",answers:["La fuerza se opone al movimiento","No hay movimiento","No existe desplazamiento","La fuerza es cero"],correct:0},
-{q:"La fórmula de potencia es...",answers:["P=W/t","P=F·d","P=m·g·h","P=V·I"],correct:0},
-{q:"El símbolo de la densidad es...",answers:["Δ","Ω","ρ","λ"],correct:2},
-{q:"Una hipótesis se convierte en ley científica cuando...",answers:["Es observada una sola vez","No se comunica","Se comprueba repetidamente","Es rechazada"],correct:2}
-
-];
-const hardQuestions=[
-{q:"Si una planta al sol crece 15 cm y otra a la sombra 5 cm, ¿qué variable es la diferencia de altura?",answers:["Constante","Error","Dependiente","Independiente"],correct:2},
-{q:"Si duplicamos la distancia entre dos masas, la fuerza de atracción gravitatoria...",answers:["Se mantiene","Se reduce a la mitad","Se duplica","Se reduce a la cuarta parte"],correct:3},
-{q:"Un gas ocupa 4 L a 2 atm. Según Boyle, si aumenta la presión a 4 atm, el volumen será...",answers:["4 L","1 L","2 L","8 L"],correct:2},
-{q:"Un coche de 1000 kg a 20 m/s tiene energía cinética de...",answers:["10000 J","400000 J","200000 J","20000 J"],correct:2},
-{q:"Una caja de 50 kg a 2 m de altura tiene energía potencial de...",answers:["50 J","200 J","500 J","1000 J"],correct:3},
-{q:"Si aplico 20 N y el objeto no se mueve, el trabajo es...",answers:["No se puede calcular","0","20 J","Cero"],correct:3},
-{q:"Una fuerza de 10 N desplaza un objeto 3 m en contra de la dirección del movimiento. El trabajo es...",answers:["30 J","10 J","0","-30 J"],correct:3},
-{q:"Un objeto recorre 100 m en 20 s. Su velocidad media es...",answers:["5 m/s","10 m/s","2 m/s","4 m/s"],correct:0},
-{q:"Un coche pasa de 0 a 20 m/s en 10 s. Su aceleración es...",answers:["5 m/s²","2 m/s²","1 m/s²","10 m/s²"],correct:1},
-{q:"Si un bloque pesa 200 N y el área de apoyo es 0,5 m², la presión ejercida es...",answers:["200 Pa","100 Pa","600 Pa","400 Pa"],correct:3}
-
-];
-
-const effects=[
-  {text:"Fácil (1 punto)",points:1,pool:easyQuestions},
-  {text:"Normal (2 puntos)",points:2,pool:normalQuestions},
-  {text:"Difícil (3 puntos)",points:3,pool:hardQuestions},
-  {text:"Robo (2 puntos)",points:2,pool:normalQuestions,mode:"steal"},
-  {text:"Doble o nada (4 puntos si aciertas, -2 si fallas)",points:4,pool:hardQuestions,mode:"double"}
-];
-
-let teams=[],currentTeam=0,currentEffect=null,WIN_POINTS=40;
-
-function prepareTeams(){
-  const num=parseInt(document.getElementById("numTeams").value);
-  if(num<2||num>6){ showMessage("Elige entre 2 y 6 equipos.","incorrect"); return; }
-  const nameDiv=document.getElementById("teamNames");
-  nameDiv.innerHTML='';
-  for(let i=0;i<num;i++){
-    nameDiv.innerHTML+=`<input type='text' id='teamName${i}' placeholder='Nombre equipo ${i+1}'><br>`;
-  }
-  nameDiv.innerHTML+=`<button onclick='startGame(${num})'>Empezar Juego</button>`;
-}
-
-function startGame(num){
-  teams=[];
-  for(let i=0;i<num;i++){
-    const name=document.getElementById("teamName"+i).value || `Equipo ${i+1}`;
-    teams.push({name:name, score:0});
-  }
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("game").classList.remove("hidden");
-  updateScoreboard(); updateTurn();
-  updateTeacherPanel();
-}
-
-function updateScoreboard(){
-  const board=document.getElementById("scoreboard"); board.innerHTML='';
-  teams.forEach((t,i)=>{
-    const div=document.createElement("div");
-    div.className="team";
-    div.innerHTML=`<h3>${t.name}</h3><p>${t.score} pts</p>`;
-    if(i===currentTeam) div.style.border="3px solid #ff6f61";
-    board.appendChild(div);
-  });
-}
-
-function updateTurn(){
-  document.getElementById("turn").textContent=`Turno de ${teams[currentTeam].name}`;
-  document.getElementById("diceResult").textContent='';
-  document.getElementById("questionBox").classList.add("hidden");
-}
-
-function rollDice(){
-  const roll=Math.floor(Math.random()*effects.length);
-  currentEffect=effects[roll];
-  document.getElementById("diceResult").textContent=currentEffect.text;
-  askQuestion();
-}
-
-function askQuestion(){
-  const q=currentEffect.pool[Math.floor(Math.random()*currentEffect.pool.length)];
-  document.getElementById("questionBox").classList.remove("hidden");
-  document.getElementById("questionText").textContent=q.q;
-  const ansDiv=document.getElementById("answers"); 
-  ansDiv.innerHTML='';
-  q.answers.forEach((ans,i)=>{
-    const btn=document.createElement("button"); 
-    btn.textContent=ans;
-    btn.onclick=()=>checkAnswer(i,q.correct,ansDiv);
-    ansDiv.appendChild(btn);
-  });
-}
-
-function checkAnswer(choice,correct,ansDiv){
-  const team=teams[currentTeam];
-  if(choice===correct){
-    if(currentEffect.mode==='steal'){
-      const victimNames = teams.filter(t=>t!==team).map(t=>t.name).join(', ');
-      let victimName = prompt(`¡Correcto! A quién quieres robar (${victimNames})?`);
-      let victim = teams.find(t=>t.name.toLowerCase()===victimName?.toLowerCase());
-      if(victim){
-        team.score += currentEffect.points;
-        victim.score -= currentEffect.points;
-        showMessage(`¡Robaste ${currentEffect.points} puntos a ${victim.name}! 🎉`,'correct');
-      } else {
-        team.score += currentEffect.points;
-        showMessage(`¡Correcto! Ganaste ${currentEffect.points} puntos, pero nadie fue robado 😎`,'correct');
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Trivial de Física de Química</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style id="app-style">
+      :root {
+        --color-parchment: #f4e9d5;
+        --color-parchment-dark: #e8d7b6;
+        --color-brown-light: #c9ad88;
+        --color-brown: #9e7e4e;
+        --color-brown-dark: #705636;
+        --color-gold: #d4af37;
+        --color-gold-dark: #b08d24;
+        --color-green: #4caf50;
+        --color-red: #f44336;
       }
-    } else if(currentEffect.mode==='double'){
-      team.score += currentEffect.points;
-      showMessage(`¡Acertaste Doble o Nada! +${currentEffect.points} puntos 🔥`,'correct');
-    } else {
-      team.score += currentEffect.points;
-      showMessage(`¡Correcto! +${currentEffect.points} puntos 🎉`,'correct');
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Crimson Pro', serif;
+        background-color: #4e3925;
+        background-image: url('https://cdn.pixabay.com/photo/2015/12/03/08/50/paper-1074131_1280.jpg');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: var(--color-brown-dark);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      
+      h1, h2, h3 {
+        font-family: 'Cinzel', serif;
+        color: var(--color-brown-dark);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      
+      .parchment {
+        background-color: var(--color-parchment);
+        background-image: url('https://cdn.pixabay.com/photo/2019/03/03/20/22/background-4033032_1280.jpg');
+        background-size: cover;
+        background-position: center;
+        border: 12px solid transparent;
+        border-image: url('https://cdn.pixabay.com/photo/2017/01/31/17/10/frame-2025672_1280.png') 30 round;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        padding: 30px;
+        border-radius: 8px;
+        position: relative;
+      }
+      
+      .btn {
+        font-family: 'Cinzel', serif;
+        background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+        color: #3a2512;
+        border: 2px solid #8b6b2f;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.2);
+        margin: 5px;
+      }
+      
+      .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      }
+      
+      .btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      
+      .btn-primary {
+        background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+        color: #3a2512;
+      }
+      
+      .btn-secondary {
+        background: linear-gradient(135deg, var(--color-brown-light), var(--color-brown));
+        color: #fff;
+      }
+      
+      .btn-danger {
+        background: linear-gradient(135deg, var(--color-red), darkred);
+        color: white;
+      }
+      
+      /* Inicio */
+      #inicio {
+        text-align: center;
+        max-width: 800px;
+        margin: 20px auto;
+      }
+      
+      #inicio h1 {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        color: var(--color-brown-dark);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      
+      #equipos-setup {
+        margin-top: 30px;
+      }
+      
+      .team-input-container {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .team-input-container input {
+        font-family: 'Crimson Pro', serif;
+        font-size: 1.2rem;
+        padding: 10px 15px;
+        border: 2px solid var(--color-brown);
+        border-radius: 6px;
+        background-color: rgba(255, 255, 255, 0.6);
+        width: 70%;
+        max-width: 400px;
+      }
+      
+      /* Tablero */
+      #tablero {
+        display: none;
+      }
+      
+      .teams-board {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+        max-height: 450px;
+        overflow-y: auto;
+      }
+      
+      .team-card {
+        background-color: rgba(255, 255, 255, 0.5);
+        border: 3px solid var(--color-brown);
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+      
+      .team-card.active {
+        border: 3px solid var(--color-gold);
+        box-shadow: 0 0 20px var(--color-gold);
+        transform: scale(1.05);
+        background-image: url('https://cdn.pixabay.com/photo/2012/12/24/08/39/paper-72989_1280.jpg');
+      }
+      
+      .team-name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      
+      .team-score {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--color-brown-dark);
+      }
+      
+      #dado-container {
+        text-align: center;
+        margin: 30px auto;
+        perspective: 800px;
+      }
+      
+      #dado {
+        width: 120px;
+        height: 120px;
+        cursor: pointer;
+        margin: 0 auto;
+        perspective: 800px;
+        transform-style: preserve-3d;
+      }
+
+      .cube {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 1.5s ease;
+      }
+
+      .face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
+        border: 2px solid var(--color-brown);
+        background-color: var(--color-parchment);
+        background-image: url('https://cdn.pixabay.com/photo/2019/03/03/20/22/background-4033032_1280.jpg');
+        background-size: cover;
+        font-family: 'Cinzel', serif;
+        font-size: 48px;
+        font-weight: bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+      }
+
+      .front { transform: rotateY(0deg) translateZ(60px); }
+      .back { transform: rotateY(180deg) translateZ(60px); }
+      .right { transform: rotateY(90deg) translateZ(60px); }
+      .left { transform: rotateY(-90deg) translateZ(60px); }
+      .top { transform: rotateX(90deg) translateZ(60px); }
+      .bottom { transform: rotateX(-90deg) translateZ(60px); }
+
+      #dado-resultado {
+        margin-top: 20px;
+        font-size: 1.8rem;
+        font-weight: bold;
+        min-height: 2rem;
+        transition: all 0.3s ease;
+      }
+      
+      /* Pregunta */
+      #pregunta-container {
+        display: none;
+        margin-top: 20px;
+        text-align: center;
+        background-image: url('https://cdn.pixabay.com/photo/2017/06/21/21/30/texture-2428461_1280.jpg');
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        max-width: 800px;
+        margin: 20px auto;
+        transform: scale(0.9);
+        opacity: 0;
+        transition: all 0.5s ease;
+        position: relative;
+      }
+      
+      #pregunta-container.show {
+        transform: scale(1);
+        opacity: 1;
+      }
+      
+      #pregunta-texto {
+        font-size: 1.5rem;
+        margin-bottom: 30px;
+        line-height: 1.6;
+      }
+      
+      #respuestas-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+      }
+      
+      .respuesta-btn {
+        background-color: rgba(244, 233, 213, 0.7);
+        border: 2px solid var(--color-brown);
+        border-radius: 6px;
+        padding: 15px;
+        font-family: 'Crimson Pro', serif;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: left;
+      }
+      
+      .respuesta-btn:hover {
+        background-color: rgba(244, 233, 213, 0.9);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+      
+      /* Modal de Resultado */
+      #resultado-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .modal-content {
+        background-image: url('https://cdn.pixabay.com/photo/2019/03/03/20/22/background-4033032_1280.jpg');
+        background-size: cover;
+        border: 10px solid transparent;
+        border-image: url('https://cdn.pixabay.com/photo/2017/01/31/17/10/frame-2025672_1280.png') 30 round;
+        border-radius: 10px;
+        padding: 30px;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+      
+      #resultado-titulo {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+      }
+      
+      .resultado-correcto {
+        color: var(--color-green);
+      }
+      
+      .resultado-incorrecto {
+        color: var(--color-red);
+      }
+      
+      #respuesta-correcta {
+        font-size: 1.3rem;
+        margin: 20px 0;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+      }
+      
+      /* Panel de Profesor */
+      #profesor-panel-trigger {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background-color: var(--color-brown-dark);
+        color: white;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        z-index: 990;
+        transition: all 0.3s ease;
+      }
+      
+      #profesor-panel-trigger:hover {
+        transform: scale(1.1);
+      }
+      
+      #profesor-panel {
+        position: fixed;
+        bottom: -400px;
+        right: 30px;
+        width: 250px;
+        background-image: url('https://cdn.pixabay.com/photo/2019/03/03/20/22/background-4033032_1280.jpg');
+        border: 8px solid transparent;
+        border-image: url('https://cdn.pixabay.com/photo/2017/01/31/17/10/frame-2025672_1280.png') 30 round;
+        border-radius: 10px 10px 0 0;
+        padding: 15px;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4);
+        z-index: 980;
+        transition: bottom 0.4s ease;
+        max-height: 80vh;
+        overflow-y: auto;
+        display: none;
+      }
+      
+      #profesor-panel.show {
+        bottom: 0;
+        z-index: 991;
+        display: block;
+      }
+      
+      .prof-close-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--color-brown-dark);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      
+      .profesor-team-control {
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+      }
+      
+      .prof-team-name {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .prof-team-buttons {
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      .prof-btn {
+        padding: 5px 10px;
+        font-size: 0.9rem;
+      }
+      
+      /* Animaciones adicionales */
+      .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+      }
+      
+      .slide-in {
+        animation: slideIn 0.5s ease forwards;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      
+      /* Answer feedback animations */
+      @keyframes greenFlash {
+        0% { background-color: rgba(255, 255, 255, 0.5); }
+        50% { background-color: rgba(76, 175, 80, 0.5); }
+        100% { background-color: rgba(255, 255, 255, 0.5); }
+      }
+
+      @keyframes redShake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+      }
+
+      .thumbs-up {
+        animation: thumbsUp 0.5s ease-in-out;
+      }
+
+      @keyframes thumbsUp {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+
+      .sparkle {
+        position: fixed;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--color-gold);
+        pointer-events: none;
+        opacity: 0;
+        z-index: 2000;
+        animation: sparkle 1.5s ease-in-out forwards;
+      }
+
+      @keyframes sparkle {
+        0% { transform: translateY(0) scale(0); opacity: 0; }
+        50% { opacity: 1; }
+        100% { transform: translateY(-100px) scale(0); opacity: 0; }
+      }
+
+      #sparkles-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 999;
+      }
+      
+      /* Responsive */
+      @media (max-width: 768px) {
+        #inicio h1 {
+          font-size: 2.5rem;
+        }
+        
+        .teams-board {
+          grid-template-columns: 1fr;
+        }
+        
+        #respuestas-container {
+          grid-template-columns: 1fr;
+        }
+        
+        .modal-content {
+          width: 95%;
+          padding: 15px;
+        }
+        
+        #profesor-panel {
+          width: 90%;
+          right: 5%;
+        }
+      }
+      
+      #clasificacion-modal .parchment {
+        animation: fadeIn 0.8s ease forwards, scaleIn 0.5s ease forwards;
+      }
+      
+      @keyframes scaleIn {
+        from { transform: scale(0.8); }
+        to { transform: scale(1); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Pantalla de inicio -->
+      <div id="inicio" class="parchment">
+        <h1>Trivial de Física y Química</h1>
+        <p>¡Bienvenidos al juego de trivial por equipos! En este juego repasaremos los conceptos claves de estos últimos temas de física y química. ¡Espero que os guste!</p>
+        
+        <div id="equipos-setup">
+          <h2>Configuración de equipos</h2>
+          
+          <div class="select-container">
+            <label for="num-equipos">Número de equipos:</label>
+            <select id="num-equipos" class="btn btn-secondary">
+              <option value="2">2 Equipos</option>
+              <option value="3">3 Equipos</option>
+              <option value="4">4 Equipos</option>
+              <option value="5">5 Equipos</option>
+              <option value="6">6 Equipos</option>
+            </select>
+          </div>
+          
+          <div class="select-container" style="margin-top: 15px;">
+            <label for="puntos-ganar">Puntos para ganar:</label>
+            <input type="number" id="puntos-ganar" class="btn btn-secondary" value="40" min="5" max="100">
+          </div>
+          
+          <div id="equipos-inputs" class="equipos-inputs">
+            <div class="team-input-container">
+              <input type="text" id="equipo-1" placeholder="Nombre del Equipo 1" value="Equipo 1">
+            </div>
+            <div class="team-input-container">
+              <input type="text" id="equipo-2" placeholder="Nombre del Equipo 2" value="Equipo 2">
+            </div>
+          </div>
+          
+          <button id="start-game" class="btn btn-primary">¡Comenzar Juego!</button>
+        </div>
+      </div>
+      
+      <!-- Tablero de juego -->
+      <div id="tablero" class="parchment">
+        <h1 class="game-title">Trivial de Física y Química</h1>
+        
+        <div class="teams-board" id="teams-board">
+          <!-- Los equipos se generarán dinámicamente -->
+        </div>
+        
+        <div id="dado-container">
+          <h2>Tira el dado para determinar la dificultad</h2>
+          <div id="dado">
+            <div class="cube">
+              <div class="face front">1</div>
+              <div class="face back">6</div>
+              <div class="face right">3</div>
+              <div class="face left">4</div>
+              <div class="face top">5</div>
+              <div class="face bottom">2</div>
+            </div>
+          </div>
+          <p id="dado-resultado"></p>
+          <button id="tirar-dado" class="btn btn-primary">Tirar Dado</button>
+        </div>
+        
+        <!-- Contenedor de la pregunta -->
+        <div id="pregunta-container">
+          <h2 id="pregunta-dificultad">Pregunta</h2>
+          <p id="pregunta-texto"></p>
+          <div id="respuestas-container">
+            <!-- Las respuestas se generarán dinámicamente -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modal de resultado -->
+      <div id="resultado-modal">
+        <div class="modal-content">
+          <h2 id="resultado-titulo"></h2>
+          <div id="respuesta-correcta"></div>
+          <button id="siguiente-turno" class="btn btn-primary">Siguiente Turno</button>
+        </div>
+      </div>
+      
+      <!-- Panel de Profesor -->
+      <div id="profesor-panel-trigger">
+        <i class="fas fa-chalkboard-teacher"></i>
+      </div>
+      
+      <div id="profesor-panel">
+        <button class="prof-close-btn"><i class="fas fa-times"></i></button>
+        <h3>Panel del Profesor</h3>
+        <div id="profesor-controls">
+          <!-- Los controles se generarán dinámicamente -->
+        </div>
+      </div>
+      
+      <div id="sparkles-container"></div>
+    </div>
+
+    <script id="app-script">
+      // Datos del juego
+      const gameState = {
+        equipos: [],
+        equipoActivo: 0,
+        ronda: 0,
+        dadoResultado: null,
+        preguntaActual: null,
+        respuestaCorrecta: null,
+        winPoints: 40
+      };
+      
+      // Efectos del dado
+      const efectosDado = [
+        { nombre: "Fácil", puntos: 1 },
+        { nombre: "Normal", puntos: 3 },
+        { nombre: "Difícil", puntos: 5 },
+        { nombre: "Robo", puntos: 1 },
+        { nombre: "Doble o Nada", puntos: 5 },
+        { nombre: "Fácil", puntos: 1 }
+      ];
+      
+      // Banco de preguntas simulado
+const bancoPreguntas = {
+  facil: [
+    { 
+      pregunta: "¿Qué estudia la Física?", 
+      respuestas: ["La constitución interna de la materia", "Los planetas", "Los cambios sin alterar la naturaleza interna", "La escritura"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "¿Qué estudia la Química?", 
+      respuestas: ["El movimiento rectilíneo", "Las matemáticas", "Los cambios de posición", "Los cambios que afectan la naturaleza interna"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "La evaporación del agua es un cambio...", 
+      respuestas: ["Nuclear", "Electromagnético", "Físico", "Químico"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "La oxidación del hierro es un cambio...", 
+      respuestas: ["Químico", "Mecánico", "Magnético", "Físico"], 
+      correcta: 0 
+    },
+    { 
+      pregunta: "Lanzar una pelota es un cambio...", 
+      respuestas: ["Eléctrico", "Químico", "Físico", "Nuclear"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "La fermentación del mosto en vino es un cambio...", 
+      respuestas: ["Magnético", "Físico", "Químico", "Solar"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "Primer paso del método científico", 
+      respuestas: ["Hipótesis", "Observación", "Conclusión", "Experimentación"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "Segundo paso del método científico", 
+      respuestas: ["Conclusión", "Comunicar resultados", "Formulación de hipótesis", "Observación"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "Tercer paso del método científico", 
+      respuestas: ["Hipótesis", "Experimentación", "Observación", "Ley científica"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "Último paso del método científico", 
+      respuestas: ["Conclusión", "Ley científica", "Comunicación de resultados", "Experimentación"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "¿Qué representa el eje X en una gráfica?", 
+      respuestas: ["Constante", "Variable dependiente", "Variable independiente", "Tiempo en segundos"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "¿Qué representa el eje Y en una gráfica?", 
+      respuestas: ["Temperatura", "Variable dependiente", "Variable independiente", "Constante"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "Si al aumentar X también aumenta Y, es relación...", 
+      respuestas: ["Constante", "Directa", "Inversa", "Cuadrática"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "Si al aumentar X disminuye Y, es relación...", 
+      respuestas: ["Aleatoria", "Inversa", "Directa", "Constante"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "La Ley de Boyle relaciona...", 
+      respuestas: ["Fuerza y distancia", "Masa y energía", "Presión y volumen", "Tiempo y velocidad"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "Fórmula de la Ley de Boyle", 
+      respuestas: ["F=m·a", "V=d/t", "E=m·c²", "V·P=k"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "La fuerza se mide en...", 
+      respuestas: ["Joule", "Watt", "Pascal", "Newton"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "La energía se mide en...", 
+      respuestas: ["Kelvin", "Joule", "Pascal", "Newton"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "La presión se mide en...", 
+      respuestas: ["Newton", "Pascal", "Watt", "Metro"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "La potencia se mide en...", 
+      respuestas: ["Kelvin", "Joule", "Newton", "Watt"], 
+      correcta: 3 
     }
-    nextTurn();
-  } else {
-    // Mostrar correcta en verde
-    const buttons = ansDiv.querySelectorAll("button");
-    buttons[correct].classList.add("correct-answer");
-    if(currentEffect.mode==='double'){ team.score -= 2; }
-    showMessage(`Fallaste 😢 La correcta es "${buttons[correct].textContent}"`,'incorrect');
-    // Esperar 2 segundos antes de pasar
-    setTimeout(()=>{ nextTurn(); closeMessage(); },2000);
-  }
-}
+  ],
 
-function nextTurn(){
-  if(teams[currentTeam].score>=WIN_POINTS){ showWinner(teams[currentTeam].name); return; }
-  currentTeam=(currentTeam+1)%teams.length;
-  updateScoreboard(); updateTurn(); updateTeacherPanel();
-}
+  normal: [
+    { 
+      pregunta: "¿Qué variable se manipula en un experimento?", 
+      respuestas: ["Dependiente", "Constante", "Independiente", "Aleatoria"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "¿Qué variable se mide en un experimento?", 
+      respuestas: ["Dependiente", "Independiente", "Constante", "Neutra"], 
+      correcta: 0 
+    },
+    { 
+      pregunta: "Si cultivo 10 plantas al sol y 10 en la sombra, ¿qué es la luz del sol?", 
+      respuestas: ["Variable independiente", "Variable dependiente", "Constante", "Hipótesis"], 
+      correcta: 0 
+    },
+    { 
+      pregunta: "Si cultivo 10 plantas al sol y 10 en la sombra, ¿qué es la longitud de la planta?", 
+      respuestas: ["Variable independiente", "Hipótesis", "Constante", "Variable dependiente"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "En un experimento, la cantidad de agua que reciben las plantas es...", 
+      respuestas: ["Constante", "Variable independiente", "Variable dependiente", "Error"], 
+      correcta: 0 
+    },
+    { 
+      pregunta: "Si una gráfica muestra Y creciendo linealmente con X, es...", 
+      respuestas: ["Proporcionalidad directa", "Relación inversa", "Constante", "Parábola"], 
+      correcta: 0 
+    },
+    { 
+      pregunta: "La fórmula F=m·g calcula...", 
+      respuestas: ["Trabajo", "Energía", "Peso", "Velocidad"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "Un objeto de 5 kg en la Tierra (g=10) pesa...", 
+      respuestas: ["500 N", "10 N", "5 N", "50 N"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "Si F=10 N y d=5 m, el trabajo es...", 
+      respuestas: ["50 J", "15 J", "2 J", "5 J"], 
+      correcta: 0 
+    },
+    { 
+      pregunta: "Si m=2 kg, v=3 m/s, la energía cinética es...", 
+      respuestas: ["3 J", "12 J", "6 J", "9 J"], 
+      correcta: 3 
+    }
+  ],
 
-function showMessage(msg,type){
-  const box=document.getElementById("messageBox");
-  const txt=document.getElementById("messageText");
-  txt.textContent=msg;
-  box.className='';
-  box.classList.add(type==='correct'?'correct':'incorrect');
-  box.style.display='block';
-}
+  dificil: [
+    { 
+      pregunta: "Si una planta al sol crece 15 cm y otra a la sombra 5 cm, ¿qué variable es la diferencia de altura?", 
+      respuestas: ["Constante", "Error", "Dependiente", "Independiente"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "Si duplicamos la distancia entre dos masas, la fuerza de atracción gravitatoria...", 
+      respuestas: ["Se mantiene", "Se reduce a la mitad", "Se duplica", "Se reduce a la cuarta parte"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "Un gas ocupa 4 L a 2 atm. Según Boyle, si aumenta la presión a 4 atm, el volumen será...", 
+      respuestas: ["4 L", "1 L", "2 L", "8 L"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "Un coche de 1000 kg a 20 m/s tiene energía cinética de...", 
+      respuestas: ["10000 J", "400000 J", "200000 J", "20000 J"], 
+      correcta: 2 
+    },
+    { 
+      pregunta: "Una caja de 50 kg a 2 m de altura tiene energía potencial de...", 
+      respuestas: ["50 J", "200 J", "500 J", "1000 J"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "Si aplico 20 N y el objeto no se mueve, el trabajo es...", 
+      respuestas: ["No se puede calcular", "0", "20 J", "Cero"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "Una fuerza de 10 N desplaza un objeto 3 m en contra de la dirección del movimiento. El trabajo es...", 
+      respuestas: ["30 J", "10 J", "0", "-30 J"], 
+      correcta: 3 
+    },
+    { 
+      pregunta: "Un objeto recorre 100 m en 20 s. Su velocidad media es...", 
+      respuestas: ["5 m/s", "10 m/s", "2 m/s", "4 m/s"], 
+      correcta: 0 
+    },
+    { 
+      pregunta: "Un coche pasa de 0 a 20 m/s en 10 s. Su aceleración es...", 
+      respuestas: ["5 m/s²", "2 m/s²", "1 m/s²", "10 m/s²"], 
+      correcta: 1 
+    },
+    { 
+      pregunta: "Si un bloque pesa 200 N y el área de apoyo es 0,5 m², la presión ejercida es...", 
+      respuestas: ["200 Pa", "100 Pa", "600 Pa", "400 Pa"], 
+      correcta: 3 
+    }
+  ]
+};
 
-function closeMessage(){document.getElementById("messageBox").style.display='none';}
+      
+      // Eventos DOM
+      document.addEventListener('DOMContentLoaded', function() {
+        // Configuración inicial
+        cargarJuegoGuardado();
+        actualizarFormularioEquipos();
+        
+        // Evento para cambiar el número de equipos
+        document.getElementById('num-equipos').addEventListener('change', actualizarFormularioEquipos);
+        
+        // Evento para iniciar el juego
+        document.getElementById('start-game').addEventListener('click', iniciarJuego);
+        
+        // Evento para tirar el dado
+        document.getElementById('tirar-dado').addEventListener('click', tirarDado);
+        
+        // Evento para continuar al siguiente turno
+        document.getElementById('siguiente-turno').addEventListener('click', siguienteTurno);
+        
+        // Eventos del panel profesor
+        document.getElementById('profesor-panel-trigger').addEventListener('click', function() {
+            document.getElementById('profesor-panel').classList.add('show');
+        });
+        
+        // Add event listener for close button
+        document.querySelector('.prof-close-btn').addEventListener('click', function() {
+            document.getElementById('profesor-panel').classList.remove('show');
+        });
+      });
+      
+      // Función para actualizar el formulario según el número de equipos seleccionado
+      function actualizarFormularioEquipos() {
+        const numEquipos = parseInt(document.getElementById('num-equipos').value);
+        const equiposInputs = document.getElementById('equipos-inputs');
+        
+        // Limpiar inputs actuales
+        equiposInputs.innerHTML = '';
+        
+        // Crear inputs según el número seleccionado
+        for (let i = 1; i <= numEquipos; i++) {
+          const inputContainer = document.createElement('div');
+          inputContainer.className = 'team-input-container';
+          
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.id = `equipo-${i}`;
+          input.placeholder = `Nombre del Equipo ${i}`;
+          input.value = `Equipo ${i}`;
+          
+          inputContainer.appendChild(input);
+          equiposInputs.appendChild(inputContainer);
+        }
+      }
+      
+      // Función para iniciar el juego
+      function iniciarJuego() {
+        const numEquipos = parseInt(document.getElementById('num-equipos').value);
+        gameState.equipos = [];
+        
+        // Obtener puntos para ganar
+        const puntosInput = document.getElementById('puntos-ganar');
+        gameState.winPoints = puntosInput ? parseInt(puntosInput.value) : 40;
+        
+        // Recoger nombres de equipos
+        for (let i = 1; i <= numEquipos; i++) {
+          const nombreEquipo = document.getElementById(`equipo-${i}`).value.trim() || `Equipo ${i}`;
+          gameState.equipos.push({
+            nombre: nombreEquipo,
+            puntuacion: 0
+          });
+        }
+        
+        // Iniciar primera ronda
+        gameState.equipoActivo = 0;
+        gameState.ronda = 1;
+        
+        // Guardar estado inicial
+        guardarEstadoJuego();
+        
+        // Cambiar a vista de tablero
+        document.getElementById('inicio').style.display = 'none';
+        document.getElementById('tablero').style.display = 'block';
+        
+        // Renderizar tablero
+        actualizarTablero();
+      }
+      
+      // Función para actualizar el tablero
+      function actualizarTablero() {
+        const teamsBoard = document.getElementById('teams-board');
+        teamsBoard.innerHTML = '';
+        
+        // Crear tarjeta para cada equipo
+        gameState.equipos.forEach((equipo, index) => {
+          const teamCard = document.createElement('div');
+          teamCard.className = `team-card ${index === gameState.equipoActivo ? 'active' : ''}`;
+          
+          const teamName = document.createElement('div');
+          teamName.className = 'team-name';
+          teamName.textContent = equipo.nombre;
+          
+          const teamScore = document.createElement('div');
+          teamScore.className = 'team-score';
+          teamScore.textContent = equipo.puntuacion;
+          
+          teamCard.appendChild(teamName);
+          teamCard.appendChild(teamScore);
+          teamsBoard.appendChild(teamCard);
+        });
+        
+        // Actualizar panel del profesor
+        actualizarPanelProfesor();
+      }
+      
+      // Función para tirar el dado
+      function tirarDado() {
+        const dado = document.getElementById('dado');
+        const cube = dado.querySelector('.cube');
+        const dadoResultadoText = document.getElementById('dado-resultado');
+        const tirarBtn = document.getElementById('tirar-dado');
+        
+        // Deshabilitar botón mientras se tira
+        tirarBtn.disabled = true;
+        
+        // Clear previous result
+        dadoResultadoText.textContent = '';
+        
+        // Call 3D spin animation
+        spinDice().then((resultadoIndex) => {
+          gameState.dadoResultado = efectosDado[resultadoIndex];
+          
+          // Mostrar resultado con animación
+          dadoResultadoText.textContent = `¡${gameState.dadoResultado.nombre}!`;
+          dadoResultadoText.classList.add('animate__animated', 'animate__bounceIn');
+          
+          // Limpiar animación después
+          setTimeout(() => {
+            dadoResultadoText.classList.remove('animate__animated', 'animate__bounceIn');
+          }, 1000);
+          
+          // Después de mostrar el resultado, mostrar la pregunta
+          setTimeout(mostrarPregunta, 1000);
+        });
+      }
 
-function showWinner(name){
-  const winnerBox=document.getElementById("winnerBox");
-  winnerBox.textContent=`🏆 ¡${name} ha ganado la partida! 🏆`;
-  winnerBox.style.display='block';
-  document.getElementById("game").classList.add("hidden");
-}
+      // New function to handle 3D dice animation
+      function spinDice() {
+        return new Promise((resolve) => {
+          const cube = document.querySelector('.cube');
+          
+          // Generate random rotations (ensure it rotates at least twice)
+          const rotX = 360 * (2 + Math.floor(Math.random() * 3)) + Math.floor(Math.random() * 4) * 90;
+          const rotY = 360 * (2 + Math.floor(Math.random() * 3)) + Math.floor(Math.random() * 4) * 90;
+          const rotZ = Math.floor(Math.random() * 360);
+          
+          // Apply the rotation
+          cube.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg)`;
+          
+          // Determine which face is shown at the end
+          setTimeout(() => {
+            // Calculate which face is shown based on the final rotation
+            let resultadoIndex = 0;
+            
+            // Simplified calculation based on final rotation angles
+            const xMod = ((rotX % 360) + 360) % 360;
+            const yMod = ((rotY % 360) + 360) % 360;
+            
+            // Determine which face is on top based on rotation
+            if (xMod < 45 || xMod > 315) {
+              // Front face = 0 (Fácil - 1)
+              resultadoIndex = 0;
+            } else if (xMod >= 45 && xMod < 135) {
+              // Top face = 4 (Difícil - 5)
+              resultadoIndex = 4;
+            } else if (xMod >= 135 && xMod < 225) {
+              // Back face = 1 (Doble o Nada - 6)
+              resultadoIndex = 5;
+            } else if (xMod >= 225 && xMod < 315) {
+              // Bottom face = 5 (Normal - 2)
+              resultadoIndex = 1;
+            }
+            
+            // Further adjust based on y rotation
+            if ((yMod >= 45 && yMod < 135) || (yMod >= 225 && yMod < 315)) {
+              // Left or right face (Robo - 4 or Fácil - 3)
+              resultadoIndex = yMod < 180 ? 2 : 3;
+            }
+            
+            resolve(resultadoIndex);
+          }, 1500);
+        });
+      }
+      
+      // Función para mostrar pregunta
+      function mostrarPregunta() {
+        const preguntaContainer = document.getElementById('pregunta-container');
+        const preguntaDificultad = document.getElementById('pregunta-dificultad');
+        const preguntaTexto = document.getElementById('pregunta-texto');
+        const respuestasContainer = document.getElementById('respuestas-container');
+        
+        // Reset any previous style changes
+        preguntaContainer.style.display = 'none';
+        preguntaContainer.classList.remove('show', 'animate__animated', 'animate__fadeIn');
+        
+        // Determinar la dificultad según el dado
+        let dificultad;
+        switch (gameState.dadoResultado.nombre) {
+          case "Fácil":
+            dificultad = 'facil';
+            break;
+          case "Normal":
+            dificultad = 'normal';
+            break;
+          case "Difícil":
+          case "Robo":
+          case "Doble o Nada":
+            dificultad = 'dificil';
+            break;
+          default:
+            dificultad = 'normal';
+        }
+        
+        // Obtener pregunta aleatoria
+        const preguntasPosibles = bancoPreguntas[dificultad];
+        const preguntaIndex = Math.floor(Math.random() * preguntasPosibles.length);
+        gameState.preguntaActual = preguntasPosibles[preguntaIndex];
+        gameState.respuestaCorrecta = gameState.preguntaActual.correcta;
+        
+        // Configurar contenido
+        preguntaDificultad.textContent = `Pregunta ${dificultad.toUpperCase()}`;
+        preguntaTexto.textContent = gameState.preguntaActual.pregunta;
+        respuestasContainer.innerHTML = '';
+        
+        // Crear botones de respuesta
+        gameState.preguntaActual.respuestas.forEach((respuesta, index) => {
+          const btn = document.createElement('button');
+          btn.className = 'respuesta-btn';
+          btn.textContent = respuesta;
+          btn.addEventListener('click', () => verificarRespuesta(index));
+          
+          respuestasContainer.appendChild(btn);
+        });
+        
+        // Mostrar contenedor con animación
+        preguntaContainer.style.display = 'block';
+        preguntaContainer.classList.add('animate__animated', 'animate__fadeIn');
+        
+        setTimeout(() => {
+          preguntaContainer.classList.add('show');
+        }, 50);
+      }
+      
+      // Verificar respuesta
+      function verificarRespuesta(respuestaIndex) {
+        const esCorrecta = respuestaIndex === gameState.respuestaCorrecta;
+        const equipoActual = gameState.equipos[gameState.equipoActivo];
+        let mensaje = '';
+        let puntosGanados = 0;
+        
+        // Get UI elements for animation
+        const teamCards = document.querySelectorAll('.team-card');
+        const activeTeamCard = teamCards[gameState.equipoActivo];
+        const respuestaBtns = document.querySelectorAll('.respuesta-btn');
+        const preguntaContainer = document.getElementById('pregunta-container');
+        
+        // Apply animations based on correct/incorrect
+        if (esCorrecta) {
+          // Green flash animation for team card
+          activeTeamCard.style.animation = 'greenFlash 1s';
+          
+          // Highlight the correct answer button
+          respuestaBtns[respuestaIndex].classList.add('thumbs-up');
+          respuestaBtns[respuestaIndex].style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
+          
+          // Add sparkle effect
+          createSparkles();
+          
+          // Calculate points
+          switch (gameState.dadoResultado.nombre) {
+            case "Robo":
+              // Uso de async/await para manejar la promesa
+              mostrarSelectorRobo().then(puntos => {
+                puntosGanados = puntos;
+                equipoActual.puntuacion += puntosGanados;
+                
+                // Guardar estado actualizado
+                guardarEstadoJuego();
+                
+                // Verificar si hay un ganador
+                verificarGanador(equipoActual);
+                
+                // Mostrar modal con resultado
+                mostrarResultado(esCorrecta, `¡Correcto! Robaste ${puntosGanados} punto`);
+              });
+              return; // Salimos temprano ya que la promesa manejará el resto
+            case "Doble o Nada":
+              puntosGanados = gameState.dadoResultado.puntos;
+              mensaje = `¡Correcto! Ganas ${puntosGanados} puntos`;
+              break;
+            default:
+              puntosGanados = gameState.dadoResultado.puntos;
+              mensaje = `¡Correcto! Ganas ${puntosGanados} puntos`;
+          }
+          equipoActual.puntuacion += puntosGanados;
+        } else {
+          // Red shake animation for question container
+          preguntaContainer.style.animation = 'redShake 0.5s';
+          
+          // Highlight correct answer
+          respuestaBtns[gameState.respuestaCorrecta].style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
+          respuestaBtns[respuestaIndex].style.backgroundColor = 'rgba(244, 67, 54, 0.3)';
+          
+          if (gameState.dadoResultado.nombre === "Doble o Nada") {
+            // Perder exactamente 2 puntos si es "Doble o Nada" y falla
+            equipoActual.puntuacion -= 2;
+            mensaje = "¡Incorrecto! Pierdes 2 puntos";
+          } else {
+            mensaje = "¡Incorrecto!";
+          }
+        }
+        
+        // Reset animations after delay
+        setTimeout(() => {
+          if (activeTeamCard) activeTeamCard.style.animation = '';
+          if (preguntaContainer) preguntaContainer.style.animation = '';
+          respuestaBtns.forEach(btn => {
+            btn.classList.remove('thumbs-up');
+          });
+        }, 1000);
+        
+        // Guardar estado actualizado
+        guardarEstadoJuego();
+        
+        // Verificar si hay un ganador
+        verificarGanador(equipoActual);
+        
+        // Mostrar modal con resultado
+        mostrarResultado(esCorrecta, mensaje);
+      }
 
-// PANEL PROFESOR
-function toggleTeacherPanel(){
-  const panel=document.getElementById("teacherPanel");
-  panel.style.display=panel.style.display==='none'?'block':'none';
-  updateTeacherPanel();
-}
-
-function closeTeacherPanel(){ document.getElementById("teacherPanel").style.display='none'; }
-
-function updateTeacherPanel(){
-  const container=document.getElementById("panelTeams");
-  container.innerHTML='';
-  teams.forEach((t,i)=>{
-    const div=document.createElement('div');
-    div.style.marginBottom='5px';
-    div.innerHTML=`<strong>${t.name}</strong> (${t.score} pts) 
-    <button onclick="teacherAdd(${i})">+1</button>
-    <button onclick="teacherSub(${i})">-1</button>`;
-    container.appendChild(div);
-  });
-}
-
-function teacherAdd(index){ teams[index].score++; updateScoreboard(); updateTeacherPanel(); }
-function teacherSub(index){ teams[index].score--; updateScoreboard(); updateTeacherPanel(); }
-</script>
-</body>
+      // Function to create sparkle effect
+      function createSparkles() {
+        const sparklesContainer = document.getElementById('sparkles-container');
+        
+        // Create 30 sparkles
+        for (let i = 0; i < 30; i++) {
+          const sparkle = document.createElement('div');
+          sparkle.className = 'sparkle';
+          
+          // Random position
+          const x = Math.random() * window.innerWidth;
+          const y = window.innerHeight - Math.random() * 200;
+          
+          // Set position
+          sparkle.style.left = `${x}px`;
+          sparkle.style.top = `${y}px`;
+          
+          // Random delay
+          sparkle.style.animationDelay = `${Math.random() * 1.5}s`;
+          
+          // Append to container
+          sparklesContainer.appendChild(sparkle);
+          
+          // Remove after animation
+          setTimeout(() => {
+            sparkle.remove();
+          }, 3000);
+        }
+      }
+      
+      // Nueva función para manejar el robo con selector
+      function mostrarSelectorRobo() {
+        return new Promise((resolve) => {
+          // Crear modal para selección
+          const modal = document.createElement('div');
+          modal.style.position = 'fixed';
+          modal.style.top = '0';
+          modal.style.left = '0';
+          modal.style.right = '0';
+          modal.style.bottom = '0';
+          modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+          modal.style.display = 'flex';
+          modal.style.justifyContent = 'center';
+          modal.style.alignItems = 'center';
+          modal.style.zIndex = '2000';
+          
+          const content = document.createElement('div');
+          content.className = 'modal-content';
+          content.innerHTML = '<h3>Selecciona un equipo para robarle 1 punto</h3>';
+          
+          // Crear selector con todos los equipos excepto el actual
+          const selector = document.createElement('select');
+          selector.className = 'btn btn-secondary';
+          selector.style.margin = '20px 0';
+          selector.style.width = '100%';
+          
+          let hayOtrosEquipos = false;
+          
+          // Añadir equipos que no son el actual (sin filtrar por puntuación)
+          gameState.equipos.forEach((equipo, index) => {
+            if (index !== gameState.equipoActivo) {
+              const option = document.createElement('option');
+              option.value = index;
+              option.textContent = `${equipo.nombre} (${equipo.puntuacion} pts)`;
+              selector.appendChild(option);
+              hayOtrosEquipos = true;
+            }
+          });
+          
+          // Si no hay otros equipos, dar punto sin robar
+          if (!hayOtrosEquipos) {
+            document.body.removeChild(modal);
+            resolve(1); // Dar 1 punto sin robar
+            return;
+          }
+          
+          content.appendChild(selector);
+          
+          const confirmBtn = document.createElement('button');
+          confirmBtn.className = 'btn btn-primary';
+          confirmBtn.textContent = 'Confirmar';
+          content.appendChild(confirmBtn);
+          
+          modal.appendChild(content);
+          document.body.appendChild(modal);
+          
+          confirmBtn.addEventListener('click', () => {
+            const equipoVictima = parseInt(selector.value);
+            gameState.equipos[equipoVictima].puntuacion--;
+            document.body.removeChild(modal);
+            
+            // Actualizar tablero
+            actualizarTablero();
+            
+            // Resolver promesa con puntos ganados
+            resolve(1); // Siempre roba 1 punto
+          });
+        });
+      }
+      
+      // Mostrar modal con resultado
+      function mostrarResultado(esCorrecta, mensaje) {
+        const modal = document.getElementById('resultado-modal');
+        const titulo = document.getElementById('resultado-titulo');
+        const respuestaCorrecta = document.getElementById('respuesta-correcta');
+        
+        // Configurar modal
+        titulo.className = esCorrecta ? 'resultado-correcto' : 'resultado-incorrecto';
+        titulo.textContent = mensaje;
+        
+        // Mostrar respuesta correcta
+        respuestaCorrecta.textContent = `Respuesta correcta: ${gameState.preguntaActual.respuestas[gameState.respuestaCorrecta]}`;
+        
+        // Mostrar modal
+        modal.style.display = 'flex';
+      }
+      
+      // Función para pasar al siguiente turno
+      function siguienteTurno() {
+        // Cerrar modal
+        document.getElementById('resultado-modal').style.display = 'none';
+        
+        // Fade out the question container with animation
+        const preguntaContainer = document.getElementById('pregunta-container');
+        preguntaContainer.classList.add('animate__animated', 'animate__fadeOut');
+        
+        setTimeout(() => {
+          preguntaContainer.classList.remove('show', 'animate__animated', 'animate__fadeOut');
+          preguntaContainer.style.display = 'none';
+          
+          // Pasar al siguiente equipo
+          gameState.equipoActivo = (gameState.equipoActivo + 1) % gameState.equipos.length;
+          if (gameState.equipoActivo === 0) {
+            gameState.ronda++;
+          }
+          
+          // Resetear estado del dado
+          document.getElementById('tirar-dado').disabled = false;
+          document.getElementById('dado-resultado').textContent = '';
+          
+          // Reset cube to neutral position
+          const cube = document.querySelector('.cube');
+          cube.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+          
+          // Actualizar tablero
+          actualizarTablero();
+        }, 500);
+      }
+      
+      // Función para actualizar el panel del profesor
+      function actualizarPanelProfesor() {
+        const profesorControls = document.getElementById('profesor-controls');
+        profesorControls.innerHTML = '';
+        
+        // Crear controles para cada equipo
+        gameState.equipos.forEach((equipo, index) => {
+            const teamControl = document.createElement('div');
+            teamControl.className = 'profesor-team-control';
+            
+            const teamName = document.createElement('div');
+            teamName.className = 'prof-team-name';
+            teamName.textContent = equipo.nombre + `: ${equipo.puntuacion} pts`;
+            
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'prof-team-buttons';
+            
+            const minusBtn = document.createElement('button');
+            minusBtn.className = 'btn btn-danger prof-btn';
+            minusBtn.innerHTML = '<i class="fas fa-minus"></i> -1';
+            minusBtn.addEventListener('click', () => {
+                equipo.puntuacion--;
+                guardarEstadoJuego();
+                actualizarTablero();
+            });
+            
+            const plusBtn = document.createElement('button');
+            plusBtn.className = 'btn btn-primary prof-btn';
+            plusBtn.innerHTML = '<i class="fas fa-plus"></i> +1';
+            plusBtn.addEventListener('click', () => {
+                equipo.puntuacion++;
+                guardarEstadoJuego();
+                actualizarTablero();
+            });
+            
+            buttonContainer.appendChild(minusBtn);
+            buttonContainer.appendChild(plusBtn);
+            
+            teamControl.appendChild(teamName);
+            teamControl.appendChild(buttonContainer);
+            
+            profesorControls.appendChild(teamControl);
+        });
+      }
+      
+      // Guardar estado en localStorage
+      function guardarEstadoJuego() {
+        try {
+          localStorage.setItem('trivialGameState', JSON.stringify(gameState));
+        } catch (e) {
+          console.error('Error al guardar estado del juego:', e);
+        }
+      }
+      
+      // Cargar estado desde localStorage
+      function cargarJuegoGuardado() {
+        try {
+          const savedState = localStorage.getItem('trivialGameState');
+          if (savedState) {
+            const parsedState = JSON.parse(savedState);
+            
+            // Verificar que el estado guardado tiene la estructura esperada
+            if (parsedState.equipos && Array.isArray(parsedState.equipos)) {
+              // Podríamos implementar la recuperación del juego aquí
+              // Por ahora, solo dejamos que empiece un juego nuevo
+            }
+          }
+        } catch (e) {
+          console.error('Error al cargar estado del juego:', e);
+        }
+      }
+      
+      // Nueva función para verificar si hay ganador
+      function verificarGanador(equipo) {
+        if (equipo.puntuacion >= gameState.winPoints) {
+          // Fin del juego
+          endGame();
+        }
+      }
+      
+      // Nueva función para finalizar el juego y mostrar clasificación
+      function endGame() {
+        // Ordenar equipos por puntuación (de mayor a menor)
+        const equiposOrdenados = [...gameState.equipos].sort((a, b) => b.puntuacion - a.puntuacion);
+        
+        // Crear modal de clasificación final
+        const modal = document.createElement('div');
+        modal.id = 'clasificacion-modal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.right = '0';
+        modal.style.bottom = '0';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        modal.style.display = 'flex';
+        modal.style.justifyContent = 'center';
+        modal.style.alignItems = 'center';
+        modal.style.zIndex = '3000';
+        
+        const content = document.createElement('div');
+        content.className = 'parchment fade-in';
+        content.style.maxWidth = '600px';
+        content.style.width = '90%';
+        
+        const titulo = document.createElement('h1');
+        titulo.textContent = '¡Fin del Juego!';
+        titulo.style.textAlign = 'center';
+        titulo.style.marginBottom = '20px';
+        content.appendChild(titulo);
+        
+        const ganador = document.createElement('h2');
+        ganador.innerHTML = `¡${equiposOrdenados[0].nombre} gana con ${equiposOrdenados[0].puntuacion} puntos!`;
+        ganador.style.textAlign = 'center';
+        ganador.style.marginBottom = '30px';
+        ganador.style.color = 'var(--color-gold-dark)';
+        content.appendChild(ganador);
+        
+        const clasificacionTitulo = document.createElement('h3');
+        clasificacionTitulo.textContent = 'Clasificación Final';
+        clasificacionTitulo.style.textAlign = 'center';
+        clasificacionTitulo.style.marginBottom = '15px';
+        content.appendChild(clasificacionTitulo);
+        
+        const clasificacionLista = document.createElement('ol');
+        clasificacionLista.style.fontSize = '1.2rem';
+        clasificacionLista.style.paddingLeft = '30px';
+        
+        equiposOrdenados.forEach(equipo => {
+          const item = document.createElement('li');
+          item.textContent = `${equipo.nombre}: ${equipo.puntuacion} puntos`;
+          item.style.margin = '10px 0';
+          clasificacionLista.appendChild(item);
+        });
+        
+        content.appendChild(clasificacionLista);
+        
+        const newGameBtn = document.createElement('button');
+        newGameBtn.className = 'btn btn-primary';
+        newGameBtn.textContent = 'Jugar de Nuevo';
+        newGameBtn.style.marginTop = '30px';
+        newGameBtn.style.display = 'block';
+        newGameBtn.style.margin = '30px auto 0';
+        newGameBtn.addEventListener('click', () => {
+          // Reiniciar juego
+          localStorage.removeItem('trivialGameState');
+          location.reload();
+        });
+        
+        content.appendChild(newGameBtn);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+      }
+    </script>
+  </body>
 </html>
