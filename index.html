@@ -1569,101 +1569,126 @@ const bancoPreguntas = {
 };
 
       
-      // Timer functionality
-      let timerInterval;
-      let timeRemaining = 0;
+// Timer functionality
+let timerInterval;
+let timeRemaining = 0;
+let audioCtx; // AudioContext global para no crear uno nuevo cada vez
 
-      // Eventos DOM
-      document.addEventListener('DOMContentLoaded', function() {
-        // Configuración inicial
-        cargarJuegoGuardado();
-        actualizarFormularioEquipos();
-        
-        // Timer panel setup
-        const timerTrigger = document.getElementById('timer-trigger');
-        const timerPanel = document.getElementById('timer-panel');
-        const timerCloseBtn = document.querySelector('.timer-close-btn');
-        const timerInput = document.getElementById('timer-input');
-        const timerDisplay = document.getElementById('timer-display');
-        const timerStartBtn = document.getElementById('timer-start');
-        const timerStopBtn = document.getElementById('timer-stop');
-        const timerSound = document.getElementById('timer-sound');
-        
-        // Format the initial display
-        timerDisplay.textContent = formatTime(timerInput.value);
-        
-        // Update display when input changes
-        timerInput.addEventListener('input', function() {
-          timerDisplay.textContent = formatTime(this.value);
-        });
-        
-        // Toggle timer panel visibility
-        timerTrigger.addEventListener('click', function() {
-          if (timerPanel.classList.contains('show')) {
-            timerPanel.classList.add('hide');
-            setTimeout(() => {
-              timerPanel.classList.remove('show', 'hide');
-            }, 400);
-          } else {
-            timerPanel.classList.add('show');
-          }
-        });
-        
-        // Close timer panel
-        timerCloseBtn.addEventListener('click', function() {
-          timerPanel.classList.add('hide');
-          setTimeout(() => {
-            timerPanel.classList.remove('show', 'hide');
-          }, 400);
-        });
-        
-        // Start timer
-        timerStartBtn.addEventListener('click', function() {
-          stopTimer(); // Clear any existing timer
-          
-          timeRemaining = parseInt(timerInput.value);
-          if (isNaN(timeRemaining) || timeRemaining <= 0) {
-            timeRemaining = 60; // Default to 60 seconds
-          }
-          
-          timerDisplay.textContent = formatTime(timeRemaining);
-          
-          timerInterval = setInterval(function() {
-            timeRemaining--;
-            
-            if (timeRemaining <= 0) {
-              stopTimer();
-              timerSound.play();
-              timerDisplay.style.color = 'var(--color-red)';
-              setTimeout(() => {
-                timerDisplay.style.color = 'var(--color-brown-dark)';
-              }, 2000);
-            }
-            
-            timerDisplay.textContent = formatTime(timeRemaining);
-          }, 1000);
-        });
-        
-        // Stop timer
-        timerStopBtn.addEventListener('click', stopTimer);
-        
-        function stopTimer() {
-          if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-          }
-        }
-        
-        function formatTime(seconds) {
-          seconds = parseInt(seconds);
-          if (isNaN(seconds)) seconds = 0;
-          
-          const mins = Math.floor(seconds / 60);
-          const secs = seconds % 60;
-          
-          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-        
+// Eventos DOM
+document.addEventListener('DOMContentLoaded', function() {
+  // Configuración inicial
+  cargarJuegoGuardado();
+  actualizarFormularioEquipos();
+  
+  // Timer panel setup
+  const timerTrigger = document.getElementById('timer-trigger');
+  const timerPanel = document.getElementById('timer-panel');
+  const timerCloseBtn = document.querySelector('.timer-close-btn');
+  const timerInput = document.getElementById('timer-input');
+  const timerDisplay = document.getElementById('timer-display');
+  const timerStartBtn = document.getElementById('timer-start');
+  const timerStopBtn = document.getElementById('timer-stop');
+  
+  // Formato inicial del temporizador
+  timerDisplay.textContent = formatTime(timerInput.value);
+  
+  // Actualiza display al cambiar input
+  timerInput.addEventListener('input', function() {
+    timerDisplay.textContent = formatTime(this.value);
+  });
+  
+  // Abrir/cerrar panel
+  timerTrigger.addEventListener('click', function() {
+    if (timerPanel.classList.contains('show')) {
+      timerPanel.classList.add('hide');
+      setTimeout(() => {
+        timerPanel.classList.remove('show', 'hide');
+      }, 400);
+    } else {
+      timerPanel.classList.add('show');
+    }
+  });
+
+  timerCloseBtn.addEventListener('click', function() {
+    timerPanel.classList.add('hide');
+    setTimeout(() => {
+      timerPanel.classList.remove('show', 'hide');
+    }, 400);
+  });
+  
+  // Iniciar temporizador
+  timerStartBtn.addEventListener('click', function() {
+    stopTimer();
+    
+    timeRemaining = parseInt(timerInput.value);
+    if (isNaN(timeRemaining) || timeRemaining <= 0) {
+      timeRemaining = 60; // default 60 segundos
+    }
+    
+    timerDisplay.textContent = formatTime(timeRemaining);
+    
+    timerInterval = setInterval(function() {
+      timeRemaining--;
+      
+      if (timeRemaining <= 0) {
+        stopTimer();
+        playBeep(); // alarma de pitidos cortos
+        timerDisplay.style.color = 'var(--color-red)';
+        setTimeout(() => {
+          timerDisplay.style.color = 'var(--color-brown-dark)';
+        }, 2000);
+      }
+      
+      timerDisplay.textContent = formatTime(timeRemaining);
+    }, 1000);
+  });
+  
+  // Detener temporizador
+  timerStopBtn.addEventListener('click', stopTimer);
+  
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+  
+  function formatTime(seconds) {
+    seconds = parseInt(seconds);
+    if (isNaN(seconds)) seconds = 0;
+    
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    
+    return `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+  }
+  
+  // Función de pitido tipo alarma: varios cortos seguidos
+  function playBeep(repeats = 5, duration = 100, frequency = 1000, volume = 0.5, interval = 150) {
+    // Crear AudioContext solo si no existe
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContextClass();
+    }
+
+    for (let i = 0; i < repeats; i++) {
+      setTimeout(() => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        gainNode.gain.value = volume;
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), duration);
+      }, i * interval);
+    }
+  }
+      
         // Evento para cambiar el número de equipos
         document.getElementById('num-equipos').addEventListener('change', actualizarFormularioEquipos);
         
@@ -2299,5 +2324,27 @@ const bancoPreguntas = {
         document.body.appendChild(modal);
       }
     </script>
+<footer style="
+    text-align: center;
+    padding: 20px 0;
+    background-color: #222;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    font-size: 14px;
+    transition: color 0.3s;
+">
+    Creado por Miguel Ojeda 3º C
+</footer>
+
+<script>
+    const footer = document.querySelector('footer');
+    footer.addEventListener('mouseover', () => {
+        footer.style.color = '#ff9800';
+    });
+    footer.addEventListener('mouseout', () => {
+        footer.style.color = '#fff';
+    });
+</script>
+
   </body>
 </html>
