@@ -338,6 +338,9 @@
         background-color: rgba(255, 255, 255, 0.3);
         border-radius: 8px;
       }
+
+
+
       
       /* Panel de Profesor */
       #profesor-panel-trigger {
@@ -424,6 +427,106 @@
       .prof-btn {
         padding: 5px 10px;
         font-size: 0.9rem;
+      }
+      
+      /* Timer Panel Styles */
+      #timer-trigger {
+        position: fixed;
+        top: 30px;
+        right: 30px;
+        background-color: var(--color-brown-dark);
+        color: white;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        z-index: 990;
+        transition: all 0.3s ease;
+      }
+      
+      #timer-trigger:hover {
+        transform: scale(1.1);
+      }
+      
+      #timer-panel {
+        position: fixed;
+        top: 100px;
+        right: 30px;
+        width: 250px;
+        background-image: url('https://cdn.pixabay.com/photo/2019/03/03/20/22/background-4033032_1280.jpg');
+        border: 8px solid transparent;
+        border-image: url('https://cdn.pixabay.com/photo/2017/01/31/17/10/frame-2025672_1280.png') 30 round;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4);
+        z-index: 980;
+        display: none;
+      }
+      
+      #timer-panel.show {
+        display: block;
+        animation: fadeInDown 0.4s ease;
+      }
+      
+      #timer-panel.hide {
+        animation: fadeOutUp 0.4s ease;
+      }
+      
+      .timer-close-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--color-brown-dark);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      
+      .timer-display {
+        font-family: 'Cinzel', serif;
+        font-size: 2rem;
+        text-align: center;
+        margin: 10px 0;
+        color: var(--color-brown-dark);
+      }
+      
+      .timer-input {
+        font-family: 'Crimson Pro', serif;
+        width: 100%;
+        padding: 8px;
+        margin: 10px 0;
+        border: 2px solid var(--color-brown);
+        border-radius: 6px;
+        font-size: 1.2rem;
+        text-align: center;
+      }
+      
+      .timer-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+      }
+      
+      @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      @keyframes fadeOutUp {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-20px); }
       }
       
       /* Animaciones adicionales */
@@ -532,12 +635,46 @@
     </style>
   </head>
   <body>
+
+
     <div class="container">
       <!-- Pantalla de inicio -->
       <div id="inicio" class="parchment">
         <h1>Trivial de Física y Química</h1>
         <p>¡Bienvenidos al juego de trivial por equipos! En este juego repasaremos los conceptos claves de estos últimos temas de física y química. ¡Espero que os guste!</p>
         
+<br>
+<div style="background-color: #ffffff; border: 2px solid #4a90e2; border-radius: 10px; padding: 15px 20px; max-width: 600px; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; box-shadow: 0 3px 6px rgba(0,0,0,0.1); margin: 20px auto;">
+  El juego se juega por equipos, de 2 a 6 equipos.<br>
+  Cada equipo elige un nombre y un color que lo represente en el tablero.<br>
+  Se decide la cantidad de puntos para ganar al inicio del juego (por ejemplo, 40 puntos).<br>
+  Cada equipo recibe 2 comodines especiales:<br>
+  Comodín del Profesor: permite consultar una pista o aclaración sobre la pregunta.<br>
+  Comodín del Creador: permite saltar la pregunta sin perder turno ni puntos.<br>
+
+  <h3 style="color: #4a90e2; margin-top: 10px;">2. Desarrollo del juego</h3>
+  Los equipos juegan por turnos siguiendo el orden acordado.<br>
+  En su turno, el equipo tira el dado que determinará la dificultad de la pregunta:<br>
+  Preguntas fáciles → Pocos puntos<br>
+  Preguntas intermedias → Puntos medios<br>
+  Preguntas difíciles → Muchos puntos<br>
+  El equipo debe responder la pregunta dentro del tiempo límite.<br>
+  Si la respuesta es correcta, el equipo gana X puntos (depende del nivel de la pregunta).<br>
+  Si la respuesta es incorrecta, no pierde puntos pero el turno pasa al siguiente equipo.<br>
+
+  <h3 style="color: #4a90e2; margin-top: 10px;">3. Uso de comodines</h3>
+  Cada equipo solo puede usar 1 vez cada comodín durante toda la partida.<br>
+  Comodín del Profesor: al usarlo, el equipo recibe una pista para ayudar a contestar la pregunta.<br>
+  Comodín del Creador: al usarlo, el equipo omite la pregunta actual y puede avanzar sin riesgo.<br>
+
+  <h3 style="color: #4a90e2; margin-top: 10px;">4. Fin del juego</h3>
+  El juego termina cuando un equipo alcanza la cantidad de puntos para ganar.<br>
+  Ese equipo es el ganador del Trivial.
+</div>
+
+<br>
+
+
         <div id="equipos-setup">
           <h2>Configuración de equipos</h2>
           
@@ -629,6 +766,22 @@
         <h3>Panel del Profesor</h3>
         <div id="profesor-controls">
           <!-- Los controles se generarán dinámicamente -->
+        </div>
+      </div>
+      
+      <!-- Timer Button and Panel -->
+      <div id="timer-trigger">
+        <i class="fas fa-clock"></i>
+      </div>
+
+      <div id="timer-panel">
+        <button class="timer-close-btn"><i class="fas fa-times"></i></button>
+        <h3>Temporizador</h3>
+        <input type="number" id="timer-input" class="timer-input" value="60" min="1" max="3600" placeholder="Segundos">
+        <div class="timer-display" id="timer-display">01:00</div>
+        <div class="timer-controls">
+          <button id="timer-start" class="btn btn-primary">Iniciar</button>
+          <button id="timer-stop" class="btn btn-danger">Detener</button>
         </div>
       </div>
       
@@ -938,7 +1091,7 @@ const bancoPreguntas = {
       respuestas: ["3 J", "12 J", "6 J", "9 J"], 
       correcta: 3 
     },
-  { 
+    { 
     pregunta: "¿Qué modelo atómico explica los espectros de emisión?", 
     respuestas: ["Modelo de Dalton", "Modelo de Rutherford", "Modelo de Bohr", "Modelo de Aristóteles"], 
     correcta: 2 
@@ -999,11 +1152,6 @@ const bancoPreguntas = {
     correcta: 0 
   },
   { 
-    pregunta: "La capa de valencia determina:", 
-    respuestas: ["La masa del átomo", "La reactividad química", "El número de neutrones", "El número másico"], 
-    correcta: 1 
-  },
-  { 
     pregunta: "Un catión se forma cuando un átomo:", 
     respuestas: ["Gana electrones", "Pierde electrones", "Gana protones", "Pierde neutrones"], 
     correcta: 1 
@@ -1056,14 +1204,114 @@ const bancoPreguntas = {
   { 
     pregunta: "El hidrógeno puede formar:", 
     respuestas: ["Óxidos", "Hidruros", "Aniones", "Cationes"], 
-    correcta: 1 
+    correcta: 3 
   },
   { 
     pregunta: "Los electrones de valencia se encuentran en:", 
     respuestas: ["Capa más interna", "Capa de valencia", "Núcleo", "Subnivel d"], 
     correcta: 1 
-  }
-],
+  },
+  {
+    "pregunta": "¿Cuál de estas SÍ es una magnitud fundamental?",
+    "respuestas": ["Fuerza", "Longitud", "Energía", "Trabajo"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Según Dalton, los átomos de un mismo elemento...",
+    "respuestas": ["Tienen la misma masa y propiedades", "Tienen distinto número de protones", "Son divisibles", "No tienen masa"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Qué partícula tiene carga negativa?",
+    "respuestas": ["Protón", "Neutrón", "Electrón", "Positrón"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué modelo introduce niveles de energía cuantizados?",
+    "respuestas": ["Thomson", "Rutherford", "Bohr", "Dalton"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Si Z=8 y A=16, ¿cuántos neutrones tiene el átomo?",
+    "respuestas": ["8", "24", "4", "16"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "Los isótopos tienen distinto número de...",
+    "respuestas": ["Protones", "Electrones", "Neutrones", "Niveles energéticos"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Un ion con carga +3 ha...",
+    "respuestas": ["Ganado 3 electrones", "Perdido 3 electrones", "Perdido 3 protones", "Ganado 3 protones"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "El anión del fluor se llama:",
+    "respuestas": ["Fluoruro", "Fluorita", "Fluorato", "Fluorina"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Cuántos electrones puede tener como máximo el nivel n=3 según Bohr?",
+    "respuestas": ["8", "18", "32", "2"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "La masa atómica que aparece en la tabla es:",
+    "respuestas": ["La de un solo isótopo", "Un promedio según abundancia", "La suma protones + electrones", "La masa del núcleo"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Un subnivel d puede albergar hasta...",
+    "respuestas": ["6 electrones", "2 electrones", "10 electrones", "14 electrones"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué significa 2p⁶?",
+    "respuestas": ["6 protones en el nivel 2", "6 electrones en orbitales p del nivel 2", "2 protones y 6 electrones", "6 electrones en un único orbital"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Cuál es el primer subnivel que se llena?",
+    "respuestas": ["2p", "1s", "3s", "2s"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Un átomo tiende a completar su capa de valencia hasta...",
+    "respuestas": ["10 electrones", "2 electrones", "8 electrones", "12 electrones"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Un átomo neutro con 20 protones tiene...",
+    "respuestas": ["40 electrones", "20 electrones", "10 electrones", "0 electrones"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué modelo habla de un núcleo positivo pero NO explica los espectros de emisión?",
+    "respuestas": ["Thomson", "Bohr", "Rutherford", "Dalton"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Cada orbital puede contener...",
+    "respuestas": ["2 electrones", "4 electrones", "6 electrones", "1 electrón"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "El hidrógeno-1, hidrógeno-2 e hidrógeno-3 son...",
+    "respuestas": ["Iones", "Isótopos", "Compuestos", "Alótropos"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "La carga de un ion se calcula como...",
+    "respuestas": ["Electrones + protones", "Protones − electrones", "Neutrones − protones", "Electrones − neutrones"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "El nivel n=1 puede contener como máximo...",
+    "respuestas": ["8 electrones", "4 electrones", "2 electrones", "6 electrones"],
+    "correcta": 2
+    }
+  ],
 
 
   dificil: [
@@ -1116,16 +1364,305 @@ const bancoPreguntas = {
       pregunta: "Si un bloque pesa 200 N y el área de apoyo es 0,5 m², la presión ejercida es...", 
       respuestas: ["200 Pa", "100 Pa", "600 Pa", "400 Pa"], 
       correcta: 3 
-    }
+    },
+  {
+    "pregunta": "¿Cuál de las siguientes SÍ es una magnitud fundamental del SI?",
+    "respuestas": ["Energía", "Fuerza", "Densidad", "Cantidad de sustancia"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "Según Dalton, ¿qué afirmación es correcta sobre los átomos?",
+    "respuestas": ["Pueden convertirse en otros elementos", "Tienen carga positiva", "Son indivisibles y diferentes según el elemento", "Tienen electrones en niveles"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué propiedad distingue al neutrón frente al protón?",
+    "respuestas": ["Masa menor", "Carga positiva", "Carga negativa", "Ausencia de carga eléctrica"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "En el modelo de Rutherford, el electrón debería caer al núcleo. ¿Qué modelo resolvió este problema?",
+    "respuestas": ["Thomson", "Dalton", "Bohr", "Einstein"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Un átomo tiene Z=19 y A=39. ¿Cuántos neutrones presenta?",
+    "respuestas": ["19", "20", "38", "39"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Dos átomos con igual Z pero distinto A son:",
+    "respuestas": ["Iones", "Isotopos", "Alótropos", "Isómeros"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Si un ion X tiene 16 protones y 18 electrones, su carga es:",
+    "respuestas": ["+2", "-2", "-1", "+1"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Cuál de estos aniones está bien nombrado según la nomenclatura clásica?",
+    "respuestas": ["Oxígeno → óxido", "Cloro → clorato", "Bromo → bromina", "Yodo → yodita"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "El número máximo de electrones en n=3 según Bohr es:",
+    "respuestas": ["8", "10", "18", "32"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "La masa atómica aparece como un valor decimal debido a:",
+    "respuestas": ["La mezcla de isotopos", "La inestabilidad del núcleo", "Los electrones", "El número de protones exacto"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "Un subnivel d puede contener:",
+    "respuestas": ["2 e⁻", "4 e⁻", "6 e⁻", "10 e⁻"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "La notación 4s² indica:",
+    "respuestas": ["2 protones en el nivel 4", "2 electrones en un orbital s", "2 electrones en el subnivel s del nivel 4", "2 electrones de valencia obligatoriamente"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Cuál de estas secuencias respeta el orden de llenado?",
+    "respuestas": ["1s, 2p, 2s, 3s", "1s, 2s, 2p, 3s, 3p, 4s", "2s, 1s, 3p", "1p, 2s, 3s"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "La tendencia a completar 8 electrones en la capa externa pertenece a:",
+    "respuestas": ["Ley periódica", "Regla del octete", "Modelo de Dalton", "Modelo de Thomson"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Un átomo neutro con 12 protones tendrá:",
+    "respuestas": ["6 e⁻", "12 e⁻", "24 e⁻", "0 e⁻"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué modelo describe un núcleo pequeño y denso?",
+    "respuestas": ["Thomson", "Dalton", "Rutherford", "Bohr"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Un orbital puede alojar:",
+    "respuestas": ["1 electrón", "2 electrones", "4 electrones", "Depende del subnivel"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "El hidrógeno-1, hidrógeno-2 y hidrógeno-3 se diferencian en:",
+    "respuestas": ["Protones", "Electrones", "Neutrones", "Capa de valencia"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "La carga de un ion se halla como:",
+    "respuestas": ["Electrones + protones", "Electrones × protones", "Protones − electrones", "Neutrones − electrones"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Según Bohr, el primer nivel (n=1) admite:",
+    "respuestas": ["2 electrones", "4 electrones", "6 electrones", "8 electrones"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Cuál de estas afirmaciones sobre Bohr es correcta?",
+    "respuestas": ["Los electrones se mueven libremente", "Los electrones tienen trayectorias circulares con energía cuantizada", "El núcleo es negativo", "Los electrones pesan lo mismo que un protón"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Si un átomo tiene configuración 3p⁴, ¿cuántos electrones hay en ese subnivel?",
+    "respuestas": ["2", "3", "4", "6"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Los subniveles se ordenan por energía aproximadamente como:",
+    "respuestas": ["3d < 4s", "4s < 3d", "2p < 2s", "5s < 4p"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Si un átomo gana 3 electrones, se convierte en:",
+    "respuestas": ["Catión 3+", "Anión 3−", "Catión 1+", "Anión 1−"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "La masa atómica de un elemento depende directamente de:",
+    "respuestas": ["El número de electrones", "Su posición en la tabla", "La abundancia de sus isotopos", "La carga del ion más común"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Si dos isótopos tienen masas 24 y 26, y las abundancias son 20% y 80%, ¿cuál es la masa atómica aproximada del elemento?",
+    "respuestas": ["24.4", "25.2", "25.8", "26.0"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Cuál de las siguientes magnitudes NO puede expresarse mediante combinaciones de las fundamentales?",
+    "respuestas": ["Velocidad", "Densidad", "Energía", "Tiempo"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "Un átomo X tiene configuración electrónica 1s² 2s² 2p⁶ 3s² 3p¹. ¿Cuál es su número atómico?",
+    "respuestas": ["11", "12", "13", "14"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué modelo atómico permite explicar la existencia de espectros de emisión discretos?",
+    "respuestas": ["Dalton", "Thomson", "Rutherford", "Bohr"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "En un átomo neutro con A=56 y Z=26, ¿qué fracción de su masa total aproximadamente corresponde a los electrones?",
+    "respuestas": ["Menos del 0.1%", "Alrededor del 2%", "Aproximadamente 10%", "Casi el 50%"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "Si un elemento tiene un subnivel d parcialmente lleno, ¿en qué bloque de la tabla periódica se encuentra?",
+    "respuestas": ["Bloque p", "Bloque d", "Bloque f", "Bloque s"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "La energía emitida o absorbida al saltar un electrón entre niveles depende de:",
+    "respuestas": ["La masa del electrón", "La diferencia de energía entre niveles", "El número de neutrones del átomo", "La distancia absoluta al núcleo"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "Identifica cuál de las siguientes configuraciones NO es posible por el principio de exclusión de Pauli.",
+    "respuestas": ["1s²", "2p⁶", "3d¹²", "4s²"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Un ion X³⁺ tiene 10 electrones. ¿Cuál es su número atómico?",
+    "respuestas": ["10", "11", "12", "13"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "El subnivel f puede contener como máximo:",
+    "respuestas": ["12 e⁻", "14 e⁻", "16 e⁻", "18 e⁻"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "El modelo de Rutherford fallaba principalmente en explicar:",
+    "respuestas": ["La existencia de electrones", "El tamaño del núcleo", "La estabilidad del átomo", "La masa atómica"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "Si un átomo tiene Z=17 y forma un anión con configuración 1s² 2s² 2p⁶ 3s² 3p⁶, su carga es:",
+    "respuestas": ["-1", "+1", "-2", "+2"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "La regla del octete falla especialmente en elementos:",
+    "respuestas": ["Del periodo 2", "Con subniveles f ocupados", "Metales alcalinos", "Del periodo 3 o superior"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "La masa atómica aparece como un promedio porque:",
+    "respuestas": ["Los electrones modifican la masa medible", "Los neutrones varían incluso en el mismo átomo", "Existen distintos isótopos en proporciones naturales", "Las mediciones modernas no son exactas"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "En un átomo con configuración 3d⁵, ¿cuántos orbitales d están semillenos?",
+    "respuestas": ["1", "2", "3", "5"],
+    "correcta": 3
+  }
   ]
 };
 
       
+      // Timer functionality
+      let timerInterval;
+      let timeRemaining = 0;
+
       // Eventos DOM
       document.addEventListener('DOMContentLoaded', function() {
         // Configuración inicial
         cargarJuegoGuardado();
         actualizarFormularioEquipos();
+        
+        // Timer panel setup
+        const timerTrigger = document.getElementById('timer-trigger');
+        const timerPanel = document.getElementById('timer-panel');
+        const timerCloseBtn = document.querySelector('.timer-close-btn');
+        const timerInput = document.getElementById('timer-input');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerStartBtn = document.getElementById('timer-start');
+        const timerStopBtn = document.getElementById('timer-stop');
+        const timerSound = document.getElementById('timer-sound');
+        
+        // Format the initial display
+        timerDisplay.textContent = formatTime(timerInput.value);
+        
+        // Update display when input changes
+        timerInput.addEventListener('input', function() {
+          timerDisplay.textContent = formatTime(this.value);
+        });
+        
+        // Toggle timer panel visibility
+        timerTrigger.addEventListener('click', function() {
+          if (timerPanel.classList.contains('show')) {
+            timerPanel.classList.add('hide');
+            setTimeout(() => {
+              timerPanel.classList.remove('show', 'hide');
+            }, 400);
+          } else {
+            timerPanel.classList.add('show');
+          }
+        });
+        
+        // Close timer panel
+        timerCloseBtn.addEventListener('click', function() {
+          timerPanel.classList.add('hide');
+          setTimeout(() => {
+            timerPanel.classList.remove('show', 'hide');
+          }, 400);
+        });
+        
+        // Start timer
+        timerStartBtn.addEventListener('click', function() {
+          stopTimer(); // Clear any existing timer
+          
+          timeRemaining = parseInt(timerInput.value);
+          if (isNaN(timeRemaining) || timeRemaining <= 0) {
+            timeRemaining = 60; // Default to 60 seconds
+          }
+          
+          timerDisplay.textContent = formatTime(timeRemaining);
+          
+          timerInterval = setInterval(function() {
+            timeRemaining--;
+            
+            if (timeRemaining <= 0) {
+              stopTimer();
+              timerSound.play();
+              timerDisplay.style.color = 'var(--color-red)';
+              setTimeout(() => {
+                timerDisplay.style.color = 'var(--color-brown-dark)';
+              }, 2000);
+            }
+            
+            timerDisplay.textContent = formatTime(timeRemaining);
+          }, 1000);
+        });
+        
+        // Stop timer
+        timerStopBtn.addEventListener('click', stopTimer);
+        
+        function stopTimer() {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+        }
+        
+        function formatTime(seconds) {
+          seconds = parseInt(seconds);
+          if (isNaN(seconds)) seconds = 0;
+          
+          const mins = Math.floor(seconds / 60);
+          const secs = seconds % 60;
+          
+          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
         
         // Evento para cambiar el número de equipos
         document.getElementById('num-equipos').addEventListener('change', actualizarFormularioEquipos);
