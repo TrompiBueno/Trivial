@@ -634,14 +634,71 @@
       }
     </style>
 
+<!-- Botón circular fijo arriba a la izquierda -->
+<div id="volume-button" style="
+    position: fixed; 
+    top: 20px; 
+    left: 20px; 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    background-color: #705636; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    cursor: pointer; 
+    z-index: 1000;
+    color: white;
+    font-size: 24px;
+">
+  🔊
+</div>
+
+<!-- Panel desplegable con slider y botón Max -->
+<div id="volume-panel" style="
+    display: none; 
+    position: fixed; 
+    top: 80px; 
+    left: 20px; 
+    background: #fff; 
+    padding: 10px; 
+    border-radius: 8px; 
+    z-index: 1000;
+">
+  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05">
+  <button id="maxVolumeBtn">Max</button>
+</div>
+
 <audio id="backgroundMusic" src="musica.mp3" loop></audio>
+
 <script>
 const music = document.getElementById('backgroundMusic');
-music.volume = 0.05;
+const slider = document.getElementById('volumeSlider');
+const maxBtn = document.getElementById('maxVolumeBtn');
+const volumeButton = document.getElementById('volume-button');
+const volumePanel = document.getElementById('volume-panel');
 
-// Intenta reproducir automáticamente
+// Volumen inicial
+music.volume = parseFloat(slider.value);
+
+// Mostrar/ocultar panel al hacer clic en el botón
+volumeButton.addEventListener('click', () => {
+  volumePanel.style.display = volumePanel.style.display === "none" ? "block" : "none";
+});
+
+// Actualiza el volumen cuando se mueve el slider
+slider.addEventListener('input', () => {
+  music.volume = parseFloat(slider.value);
+});
+
+// Botón para volumen máximo
+maxBtn.addEventListener('click', () => {
+  music.volume = 1.0;
+  slider.value = 1.0;
+});
+
+// Manejo de autoplay bloqueado
 music.play().catch(() => {
-  // Si falla, espera interacción
   function startMusic() {
     music.play();
     document.removeEventListener('click', startMusic);
@@ -651,6 +708,7 @@ music.play().catch(() => {
   document.addEventListener('touchstart', startMusic);
 });
 </script>
+
 
   </head>
   <body>
