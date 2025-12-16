@@ -2046,49 +2046,56 @@ document.addEventListener('DOMContentLoaded', function() {
           // Add sparkle effect
           createSparkles();
           
-          // Calculate points
-          switch (gameState.dadoResultado.nombre) {
-            case "Robo":
-              // Uso de async/await para manejar la promesa
-              mostrarSelectorRobo().then(puntos => {
-                puntosGanados = puntos;
-                equipoActual.puntuacion += puntosGanados;
-                
-                // Guardar estado actualizado
-                guardarEstadoJuego();
-                
-                // Verificar si hay un ganador
-                verificarGanador(equipoActual);
-                
-                // Mostrar modal con resultado
-                mostrarResultado(esCorrecta, `¡Correcto! Robaste ${puntosGanados} punto`);
-              });
-              return; // Salimos temprano ya que la promesa manejará el resto
-            case "Doble o Nada":
-              puntosGanados = gameState.dadoResultado.puntos;
-              mensaje = `¡Correcto! Ganas ${puntosGanados} puntos`;
-              break;
-            default:
-              puntosGanados = gameState.dadoResultado.puntos;
-              mensaje = `¡Correcto! Ganas ${puntosGanados} puntos`;
-          }
-          equipoActual.puntuacion += puntosGanados;
-        } else {
-          // Red shake animation for question container
-          preguntaContainer.style.animation = 'redShake 0.5s';
-          
-          // Highlight correct answer
-          respuestaBtns[gameState.respuestaCorrecta].style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
-          respuestaBtns[respuestaIndex].style.backgroundColor = 'rgba(244, 67, 54, 0.3)';
-          
-          if (gameState.dadoResultado.nombre === "Doble o Nada") {
-            // Perder exactamente 2 puntos si es "Doble o Nada" y falla
-            equipoActual.puntuacion -= 2;
-            mensaje = "¡Incorrecto! Pierdes 2 puntos";
-          } else {
-            mensaje = "¡Incorrecto!";
-          }
-        }
+// Calculate points
+switch (gameState.dadoResultado.nombre) {
+  case "Robo":
+    mostrarSelectorRobo().then(puntos => {
+      puntosGanados = puntos;
+      equipoActual.puntuacion += puntosGanados;
+
+      guardarEstadoJuego();
+      verificarGanador(equipoActual);
+
+      // 🔊 Sonido según gane o no puntos
+      new Audio(puntosGanados > 0 ? "ganar.mp3" : "perder.mp3").play();
+
+      mostrarResultado(esCorrecta, `¡Correcto! Robaste ${puntosGanados} punto`);
+    });
+    return;
+
+  case "Doble o Nada":
+    puntosGanados = gameState.dadoResultado.puntos;
+    mensaje = `¡Correcto! Ganas ${puntosGanados} puntos`;
+    break;
+
+  default:
+    puntosGanados = gameState.dadoResultado.puntos;
+    mensaje = `¡Correcto! Ganas ${puntosGanados} puntos`;
+}
+
+equipoActual.puntuacion += puntosGanados;
+
+// 🔊 Si se ganan puntos (cualquier forma), suena ganar
+new Audio(puntosGanados > 0 ? "ganar.mp3" : "perder.mp3").play();
+
+} else {
+  // Red shake animation for question container
+  preguntaContainer.style.animation = 'redShake 0.5s';
+
+  // Highlight correct answer
+  respuestaBtns[gameState.respuestaCorrecta].style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
+  respuestaBtns[respuestaIndex].style.backgroundColor = 'rgba(244, 67, 54, 0.3)';
+
+  if (gameState.dadoResultado.nombre === "Doble o Nada") {
+    equipoActual.puntuacion -= 2;
+    mensaje = "¡Incorrecto! Pierdes 2 puntos";
+  } else {
+    mensaje = "¡Incorrecto!";
+  }
+
+  // 🔊 Siempre que pierda → perder.mp3
+  new Audio("perder.mp3").play();
+}
         
         // Reset animations after delay
         setTimeout(() => {
