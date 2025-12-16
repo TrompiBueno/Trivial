@@ -633,6 +633,29 @@
         to { transform: scale(1); }
       }
     </style>
+
+    <!-- Audio con loop -->
+    <audio id="backgroundMusic" src="musica.mp3" loop autoplay muted></audio>
+
+    <script>
+        const music = document.getElementById('backgroundMusic');
+        music.volume = 0.01; // volumen extremadamente bajo
+
+        // Suaviza la subida de volumen después de iniciar
+        music.play().then(() => {
+            let vol = 0.01;
+            const fadeIn = setInterval(() => {
+                if (vol < 0.05) { // volumen bajo final
+                    vol += 0.001;
+                    music.volume = vol;
+                } else {
+                    clearInterval(fadeIn);
+                }
+            }, 200); // sube gradualmente cada 200ms
+        }).catch(err => {
+            console.log("Autoplay bloqueado por el navegador. El usuario necesita interactuar.");
+        });
+    </script>
   </head>
   <body>
 
