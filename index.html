@@ -806,13 +806,23 @@ music.play().catch(() => {
               <div class="face top">5</div>
               <div class="face bottom">2</div>
             </div>
-          </div>
-          <br>
-          <br>
-          <p id="dado-resultado"></p>
-          <br>
-          <button id="tirar-dado" class="btn btn-primary">Tirar Dado</button>
-        </div>
+</div>
+<br>
+<br>
+<p id="dado-resultado"></p>
+<br>
+<button id="tirar-dado" class="btn btn-primary">Tirar Dado</button>
+
+<script>
+  const dadoSonido = new Audio('dado.mp3');
+  const botonDado = document.getElementById('tirar-dado');
+
+  botonDado.addEventListener('click', () => {
+    dadoSonido.currentTime = 0; // reinicia el audio si se presiona rápido
+    dadoSonido.play();
+  });
+</script>
+
         
         <!-- Contenedor de la pregunta -->
         <div id="pregunta-container">
